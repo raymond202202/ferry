@@ -1,0 +1,34 @@
+name: test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.9", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: 单元测试（含当前平台的真机断言）
+        run: python3 -m unittest discover -s tests -v
+
+      - name: macOS 断言逐条报告
+        if: runner.os == 'macOS'
+        run: python3 ferry.py drills --to macos --run
+
+      - name: 数据完整性
+        run: python3 ferry.py doctor

@@ -1,5 +1,7 @@
 # ferry（摆渡）
 
+[![test](https://github.com/raymond202202/ferry/actions/workflows/test.yml/badge.svg)](https://github.com/raymond202202/ferry/actions/workflows/test.yml)
+
 > 把命令从 Linux 摆渡到 macOS / Windows，再摆渡回来。离线、确定性、给 AI agent 用。
 
 ferry 不是"自然语言转命令"，也不是简单的命令名词典。它解决的是**同一条命令在不同操作系统上到底能不能跑、跑起来语义一样不一样**：
@@ -192,6 +194,18 @@ ferry prompt-export --to windows --max-chars 3000 > /tmp/win-cheatsheet.md
   ferry drills --to windows --emit ps1 > /tmp/win.ps1   # 在 T14 上 powershell -File win.ps1
   ```
   跑出与预期不符的项，就说明对应数据要改——这正是 drills 存在的意义。
+
+## 开发
+
+```bash
+python3 -m unittest discover -s tests -v   # 45 项
+python3 ferry.py doctor                    # 数据完整性 + 覆盖统计
+python3 ferry.py drills --to linux --run   # 当前平台行为断言
+```
+
+CI 在 Ubuntu 和 macOS 上跑同一套测试（macOS runner 会真的执行 BSD 相关断言，`data/97-drills.jsonc` 里标错的项会直接把 CI 打红——这是有意的，断言就该用结果说话）。
+
+加命令、加惯用法、加断言的步骤见 `docs/DESIGN.md` §9。
 
 ## 不做的事
 
