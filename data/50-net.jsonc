@@ -1,0 +1,340 @@
+// ferry 映射库 — 网络
+{
+  "commands": [
+    {
+      "id": "ping",
+      "category": "net",
+      "summary": "ICMP 连通性测试",
+      "names": { "linux": "ping", "macos": "ping", "windows": "Test-Connection", "windows_cmd": "ping" },
+      "flags": [
+        { "semantic": "次数", "linux": "-c 4", "macos": "-c 4", "windows": "-Count 4", "windows_cmd": "-n 4" },
+        { "semantic": "不限次数", "linux": "", "macos": "", "windows": "", "windows_cmd": "-t" }
+      ],
+      "recipes": [
+        { "desc": "ping 4 次", "status": "equivalent",
+          "linux": "ping -c 4 8.8.8.8", "macos": "ping -c 4 8.8.8.8",
+          "windows": "Test-Connection 8.8.8.8 -Count 4", "windows_cmd": "ping -n 4 8.8.8.8",
+          "caveats": ["Windows 的 -n 是次数（POSIX 的 -n 是数字输出）"] }
+      ]
+    },
+    {
+      "id": "curl",
+      "category": "net",
+      "summary": "HTTP 客户端",
+      "names": { "linux": "curl", "macos": "curl", "windows": "curl", "windows_cmd": "curl" },
+      "universal": true,
+      "flags": [
+        { "semantic": "输出到文件", "linux": "-o file", "macos": "-o file", "windows": "-o file", "windows_cmd": "-o file" },
+        { "semantic": "静默", "linux": "-s", "macos": "-s", "windows": "-s", "windows_cmd": "-s" },
+        { "semantic": "显示响应头", "linux": "-i", "macos": "-i", "windows": "-i", "windows_cmd": "-i" }
+      ],
+      "recipes": [
+        { "desc": "GET 请求", "status": "equivalent",
+          "linux": "curl https://api.example.com/v1", "macos": "curl https://api.example.com/v1",
+          "windows": "curl.exe https://api.example.com/v1", "windows_cmd": "curl https://api.example.com/v1",
+          "caveats": ["PowerShell 里 curl 是 Invoke-WebRequest 的别名，要用 curl.exe 才是真 curl"] },
+        { "desc": "POST JSON", "status": "approximate",
+          "linux": "curl -X POST -H 'Content-Type: application/json' -d '{\"a\":1}' https://api/x",
+          "macos": "curl -X POST -H 'Content-Type: application/json' -d '{\"a\":1}' https://api/x",
+          "windows": "curl.exe -X POST -H \"Content-Type: application/json\" -d '{\"a\":1}' https://api/x",
+          "caveats": ["PowerShell 的引号规则不同：单引号内不转义，JSON 内双引号可直接写"] },
+        { "desc": "下载到文件", "status": "equivalent",
+          "linux": "curl -LO https://example.com/f.zip", "macos": "curl -LO https://example.com/f.zip",
+          "windows": "curl.exe -LO https://example.com/f.zip" }
+      ]
+    },
+    {
+      "id": "wget",
+      "category": "net",
+      "summary": "下载文件",
+      "names": { "linux": "wget", "macos": "", "windows": "Invoke-WebRequest", "windows_cmd": "" },
+      "flags": [],
+      "recipes": [
+        { "desc": "下载文件", "status": "approximate",
+          "linux": "wget https://example.com/f.zip", "macos": "curl -LO https://example.com/f.zip",
+          "windows": "Invoke-WebRequest https://example.com/f.zip -OutFile f.zip",
+          "caveats": ["macOS 默认无 wget（brew install wget）；curl -O 等价"] },
+        { "desc": "断点续传", "status": "approximate",
+          "linux": "wget -c https://example.com/big.iso", "macos": "curl -C - -O https://example.com/big.iso",
+          "windows": "curl.exe -C - -O https://example.com/big.iso" }
+      ]
+    },
+    {
+      "id": "nc",
+      "category": "net",
+      "summary": "TCP/UDP 探测与小工具",
+      "names": { "linux": "nc", "macos": "nc", "windows": "Test-NetConnection", "windows_cmd": "telnet" },
+      "flags": [
+        { "semantic": "测试端口", "linux": "-zv", "macos": "-zv", "windows": "", "windows_cmd": "" }
+      ],
+      "recipes": [
+        { "desc": "测试端口是否开放", "status": "approximate",
+          "linux": "nc -zv host 443", "macos": "nc -zv host 443",
+          "windows": "Test-NetConnection host -Port 443",
+          "windows_cmd": "powershell Test-NetConnection host -Port 443",
+          "caveats": ["Windows 用 Test-NetConnection（cmd 里需先 powershell -c）"] },
+        { "desc": "监听端口收数据", "status": "approximate",
+          "linux": "nc -l 9000", "macos": "nc -l 9000",
+          "windows": "无内置；用 PowerShell TcpListener 或 ncat" }
+      ]
+    },
+    {
+      "id": "ss",
+      "category": "net",
+      "summary": "查看监听端口/连接",
+      "names": { "linux": "ss", "macos": "netstat", "windows": "Get-NetTCPConnection", "windows_cmd": "netstat" },
+      "flags": [
+        { "semantic": "TCP 监听", "linux": "-tlnp", "macos": "-tlnp", "windows": "", "windows_cmd": "-ano" }
+      ],
+      "recipes": [
+        { "desc": "列出监听中的端口", "status": "equivalent",
+          "linux": "ss -tlnp", "macos": "lsof -iTCP -sTCP:LISTEN -nP",
+          "windows": "Get-NetTCPConnection -State Listen | Sort-Object LocalPort",
+          "windows_cmd": "netstat -ano | findstr LISTENING",
+          "caveats": ["macOS 的 netstat 不支持 -p（需 sudo 且用 lsof）"] },
+        { "desc": "查看某端口连接", "status": "equivalent",
+          "linux": "ss -tn state established '( sport = :443 )'", "macos": "netstat -an | grep 443",
+          "windows": "Get-NetTCPConnection -LocalPort 443" }
+      ]
+    },
+    {
+      "id": "netstat",
+      "category": "net",
+      "summary": "网络连接与路由表",
+      "names": { "linux": "netstat", "macos": "netstat", "windows": "Get-NetTCPConnection", "windows_cmd": "netstat" },
+      "flags": [
+        { "semantic": "全部连接", "linux": "-an", "macos": "-an", "windows": "", "windows_cmd": "-an" },
+        { "semantic": "路由表", "linux": "-rn", "macos": "-rn", "windows": "", "windows_cmd": "-rn" }
+      ],
+      "recipes": [
+        { "desc": "所有连接", "status": "equivalent",
+          "linux": "ss -an", "macos": "netstat -an",
+          "windows": "Get-NetTCPConnection", "windows_cmd": "netstat -an" },
+        { "desc": "路由表", "status": "equivalent",
+          "linux": "ip route", "macos": "netstat -rn",
+          "windows": "Get-NetRoute", "windows_cmd": "route print" }
+      ]
+    },
+    {
+      "id": "ip",
+      "category": "net",
+      "summary": "网卡与 IP 地址",
+      "names": { "linux": "ip", "macos": "ifconfig", "windows": "Get-NetIPAddress", "windows_cmd": "ipconfig" },
+      "flags": [],
+      "recipes": [
+        { "desc": "查看本机 IP", "status": "equivalent",
+          "linux": "ip addr show", "macos": "ifconfig",
+          "windows": "Get-NetIPAddress -AddressFamily IPv4 | Where-Object InterfaceAlias -notlike '*Loopback*'",
+          "windows_cmd": "ipconfig" },
+        { "desc": "只看 IPv4 地址", "status": "equivalent",
+          "linux": "ip -4 -o addr show scope global", "macos": "ifconfig | grep 'inet '",
+          "windows": "(Get-NetIPAddress -AddressFamily IPv4).IPAddress",
+          "windows_cmd": "ipconfig | findstr IPv4" }
+      ]
+    },
+    {
+      "id": "ifconfig",
+      "category": "net",
+      "summary": "网卡配置（BSD 风格）",
+      "names": { "linux": "ifconfig", "macos": "ifconfig", "windows": "Get-NetAdapter", "windows_cmd": "ipconfig" },
+      "flags": [],
+      "recipes": [
+        { "desc": "列出网卡", "status": "equivalent",
+          "linux": "ifconfig -a", "macos": "ifconfig -a",
+          "windows": "Get-NetAdapter", "windows_cmd": "ipconfig /all" }
+      ]
+    },
+    {
+      "id": "dig",
+      "category": "net",
+      "summary": "DNS 查询",
+      "names": { "linux": "dig", "macos": "dig", "windows": "Resolve-DnsName", "windows_cmd": "nslookup" },
+      "flags": [
+        { "semantic": "简短输出", "linux": "+short", "macos": "+short", "windows": "", "windows_cmd": "" },
+        { "semantic": "指定记录类型", "linux": "MX", "macos": "MX", "windows": "-Type MX", "windows_cmd": "" }
+      ],
+      "recipes": [
+        { "desc": "解析 A 记录", "status": "equivalent",
+          "linux": "dig +short example.com", "macos": "dig +short example.com",
+          "windows": "Resolve-DnsName example.com -Type A", "windows_cmd": "nslookup example.com" },
+        { "desc": "查 MX 记录", "status": "equivalent",
+          "linux": "dig MX example.com +short", "macos": "dig MX example.com +short",
+          "windows": "Resolve-DnsName example.com -Type MX" },
+        { "desc": "指定 DNS 服务器", "status": "equivalent",
+          "linux": "dig @8.8.8.8 example.com", "macos": "dig @8.8.8.8 example.com",
+          "windows": "Resolve-DnsName example.com -Server 8.8.8.8" }
+      ]
+    },
+    {
+      "id": "nslookup",
+      "category": "net",
+      "summary": "DNS 查询（跨平台）",
+      "names": { "linux": "nslookup", "macos": "nslookup", "windows": "nslookup", "windows_cmd": "nslookup" },
+      "universal": true,
+      "flags": [],
+      "recipes": [
+        { "desc": "解析域名", "status": "equivalent",
+          "linux": "nslookup example.com", "macos": "nslookup example.com",
+          "windows": "nslookup example.com", "windows_cmd": "nslookup example.com" }
+      ]
+    },
+    {
+      "id": "ssh",
+      "category": "net",
+      "summary": "远程登录",
+      "names": { "linux": "ssh", "macos": "ssh", "windows": "ssh", "windows_cmd": "ssh" },
+      "universal": true,
+      "flags": [
+        { "semantic": "指定端口", "linux": "-p 2222", "macos": "-p 2222", "windows": "-p 2222", "windows_cmd": "-p 2222" },
+        { "semantic": "指定私钥", "linux": "-i key", "macos": "-i key", "windows": "-i key", "windows_cmd": "-i key" }
+      ],
+      "recipes": [
+        { "desc": "登录远程主机", "status": "equivalent",
+          "linux": "ssh user@host", "macos": "ssh user@host",
+          "windows": "ssh user@host", "windows_cmd": "ssh user@host",
+          "caveats": ["Windows 10+ 自带 OpenSSH 客户端；老系统需手动安装"] },
+        { "desc": "远程执行命令", "status": "equivalent",
+          "linux": "ssh user@host 'df -h'", "macos": "ssh user@host 'df -h'",
+          "windows": "ssh user@host 'df -h'",
+          "caveats": ["引号会先在本地 shell 解析，跨平台注意单/双引号差异"] }
+      ]
+    },
+    {
+      "id": "scp",
+      "category": "net",
+      "summary": "远程复制文件",
+      "names": { "linux": "scp", "macos": "scp", "windows": "scp", "windows_cmd": "scp" },
+      "universal": true,
+      "flags": [
+        { "semantic": "递归", "linux": "-r", "macos": "-r", "windows": "-r", "windows_cmd": "-r" }
+      ],
+      "recipes": [
+        { "desc": "上传文件", "status": "equivalent",
+          "linux": "scp a.txt user@host:/tmp/", "macos": "scp a.txt user@host:/tmp/",
+          "windows": "scp a.txt user@host:/tmp/" },
+        { "desc": "下载目录", "status": "equivalent",
+          "linux": "scp -r user@host:/var/log/app ./", "macos": "scp -r user@host:/var/log/app ./",
+          "windows": "scp -r user@host:/var/log/app ./" }
+      ]
+    },
+    {
+      "id": "rsync",
+      "category": "net",
+      "summary": "增量同步",
+      "names": { "linux": "rsync", "macos": "rsync", "windows": "robocopy", "windows_cmd": "robocopy" },
+      "flags": [
+        { "semantic": "归档模式", "linux": "-a", "macos": "-a", "windows": "", "windows_cmd": "/E" },
+        { "semantic": "显示进度", "linux": "--progress", "macos": "--progress", "windows": "", "windows_cmd": "" },
+        { "semantic": "删除目标多余文件", "linux": "--delete", "macos": "--delete", "windows": "", "windows_cmd": "/MIR" }
+      ],
+      "recipes": [
+        { "desc": "同步目录到远程", "status": "approximate",
+          "linux": "rsync -avz src/ user@host:/opt/app/", "macos": "rsync -avz src/ user@host:/opt/app/",
+          "windows": "robocopy src \\\\host\\share\\app /E /Z",
+          "caveats": ["Windows 无 rsync（可装 cwRsync/WSL）；robocopy 是等效工具但参数不同"] },
+        { "desc": "镜像同步（删除多余）", "status": "approximate",
+          "linux": "rsync -a --delete src/ dst/", "macos": "rsync -a --delete src/ dst/",
+          "windows": "robocopy src dst /MIR" }
+      ]
+    },
+    {
+      "id": "traceroute",
+      "category": "net",
+      "summary": "路由追踪",
+      "names": { "linux": "traceroute", "macos": "traceroute", "windows": "tracert", "windows_cmd": "tracert" },
+      "flags": [],
+      "recipes": [
+        { "desc": "追踪到目标的路由", "status": "equivalent",
+          "linux": "traceroute example.com", "macos": "traceroute example.com",
+          "windows": "tracert example.com", "windows_cmd": "tracert example.com" }
+      ]
+    },
+    {
+      "id": "nmap",
+      "category": "net",
+      "summary": "端口/主机扫描",
+      "names": { "linux": "nmap", "macos": "nmap", "windows": "nmap", "windows_cmd": "nmap" },
+      "universal": true,
+      "flags": [
+        { "semantic": "服务版本探测", "linux": "-sV", "macos": "-sV", "windows": "-sV", "windows_cmd": "-sV" }
+      ],
+      "recipes": [
+        { "desc": "扫描常见端口", "status": "equivalent",
+          "linux": "nmap -sV host", "macos": "nmap -sV host",
+          "windows": "nmap -sV host",
+          "caveats": ["三平台均可装 nmap；Windows 版需装 Npcap"] }
+      ]
+    },
+    {
+      "id": "arp",
+      "category": "net",
+      "summary": "ARP 表",
+      "names": { "linux": "arp", "macos": "arp", "windows": "Get-NetNeighbor", "windows_cmd": "arp" },
+      "flags": [],
+      "recipes": [
+        { "desc": "查看 ARP 表", "status": "equivalent",
+          "linux": "ip neigh", "macos": "arp -a",
+          "windows": "Get-NetNeighbor -AddressFamily IPv4", "windows_cmd": "arp -a" }
+      ]
+    },
+    {
+      "id": "iptables",
+      "category": "net",
+      "summary": "防火墙规则",
+      "names": { "linux": "iptables", "macos": "pfctl", "windows": "New-NetFirewallRule", "windows_cmd": "netsh" },
+      "flags": [
+        { "semantic": "列出规则", "linux": "-L -n -v", "macos": "-sr", "windows": "", "windows_cmd": "" }
+      ],
+      "recipes": [
+        { "desc": "列出防火墙规则", "status": "approximate",
+          "linux": "sudo iptables -L -n -v", "macos": "sudo pfctl -sr",
+          "windows": "Get-NetFirewallRule | Select-Object DisplayName, Direction, Action, Enabled",
+          "windows_cmd": "netsh advfirewall firewall show rule name=all" },
+        { "desc": "开放 8080 端口", "status": "approximate",
+          "linux": "sudo iptables -A INPUT -p tcp --dport 8080 -j ACCEPT",
+          "macos": "echo 'pass in proto tcp to port 8080' | sudo pfctl -f -",
+          "windows": "New-NetFirewallRule -DisplayName 'Allow 8080' -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow" }
+      ]
+    },
+    {
+      "id": "ufw",
+      "category": "net",
+      "summary": "简易防火墙",
+      "names": { "linux": "ufw", "macos": "", "windows": "New-NetFirewallRule", "windows_cmd": "netsh" },
+      "flags": [],
+      "recipes": [
+        { "desc": "开放端口", "status": "approximate",
+          "linux": "sudo ufw allow 8080/tcp", "macos": "macOS 无 ufw，用 pfctl 或系统设置",
+          "windows": "New-NetFirewallRule -DisplayName '8080' -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow" },
+        { "desc": "查看状态", "status": "approximate",
+          "linux": "sudo ufw status verbose", "macos": "sudo pfctl -s info",
+          "windows": "Get-NetFirewallProfile | Select-Object Name, Enabled" }
+      ]
+    },
+    {
+      "id": "ssh-keygen",
+      "category": "net",
+      "summary": "生成 SSH 密钥",
+      "names": { "linux": "ssh-keygen", "macos": "ssh-keygen", "windows": "ssh-keygen", "windows_cmd": "ssh-keygen" },
+      "universal": true,
+      "flags": [],
+      "recipes": [
+        { "desc": "生成 ed25519 密钥", "status": "equivalent",
+          "linux": "ssh-keygen -t ed25519 -C 'me@host'", "macos": "ssh-keygen -t ed25519 -C 'me@host'",
+          "windows": "ssh-keygen -t ed25519 -C 'me@host'" }
+      ]
+    },
+    {
+      "id": "nmcli",
+      "category": "net",
+      "summary": "NetworkManager 管理网络",
+      "names": { "linux": "nmcli", "macos": "networksetup", "windows": "Get-NetAdapter", "windows_cmd": "netsh" },
+      "flags": [],
+      "recipes": [
+        { "desc": "查看连接状态", "status": "approximate",
+          "linux": "nmcli device status", "macos": "networksetup -listallhardwareports",
+          "windows": "Get-NetAdapter | Format-Table Name, Status, LinkSpeed" }
+      ]
+    }
+  ]
+}

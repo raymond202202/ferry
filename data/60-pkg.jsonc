@@ -1,0 +1,181 @@
+// ferry 映射库 — 包管理
+{
+  "commands": [
+    {
+      "id": "apt",
+      "category": "pkg",
+      "summary": "Debian/Ubuntu 包管理",
+      "names": { "linux": "apt", "macos": "brew", "windows": "winget", "windows_cmd": "winget" },
+      "flags": [
+        { "semantic": "安装", "linux": "install", "macos": "install", "windows": "install", "windows_cmd": "install" },
+        { "semantic": "卸载", "linux": "remove", "macos": "uninstall", "windows": "uninstall", "windows_cmd": "uninstall" },
+        { "semantic": "更新索引", "linux": "update", "macos": "update", "windows": "source update", "windows_cmd": "source update" },
+        { "semantic": "升级全部", "linux": "upgrade", "macos": "upgrade", "windows": "upgrade --all", "windows_cmd": "upgrade --all" },
+        { "semantic": "搜索", "linux": "search", "macos": "search", "windows": "search", "windows_cmd": "search" }
+      ],
+      "recipes": [
+        { "desc": "安装软件包", "status": "approximate",
+          "linux": "sudo apt install nginx", "macos": "brew install nginx",
+          "windows": "winget install nginx", "windows_cmd": "winget install nginx",
+          "caveats": ["包名不完全一致（如 brew 是 nginx，winget 常需发布者前缀）"] },
+        { "desc": "卸载软件包", "status": "approximate",
+          "linux": "sudo apt remove nginx", "macos": "brew uninstall nginx",
+          "windows": "winget uninstall nginx" },
+        { "desc": "更新索引", "status": "approximate",
+          "linux": "sudo apt update", "macos": "brew update",
+          "windows": "winget source update" },
+        { "desc": "升级已安装", "status": "approximate",
+          "linux": "sudo apt upgrade -y", "macos": "brew upgrade",
+          "windows": "winget upgrade --all" },
+        { "desc": "搜索包", "status": "approximate",
+          "linux": "apt search nginx", "macos": "brew search nginx",
+          "windows": "winget search nginx" },
+        { "desc": "列出已安装", "status": "approximate",
+          "linux": "apt list --installed", "macos": "brew list",
+          "windows": "winget list" }
+      ]
+    },
+    {
+      "id": "dnf",
+      "category": "pkg",
+      "summary": "Fedora/RHEL 包管理",
+      "names": { "linux": "dnf", "macos": "brew", "windows": "winget", "windows_cmd": "winget" },
+      "flags": [
+        { "semantic": "安装", "linux": "install", "macos": "install", "windows": "install", "windows_cmd": "install" },
+        { "semantic": "卸载", "linux": "remove", "macos": "uninstall", "windows": "uninstall", "windows_cmd": "uninstall" },
+        { "semantic": "升级", "linux": "upgrade", "macos": "upgrade", "windows": "upgrade --all", "windows_cmd": "upgrade --all" }
+      ],
+      "recipes": [
+        { "desc": "安装软件包", "status": "approximate",
+          "linux": "sudo dnf install nginx", "macos": "brew install nginx",
+          "windows": "winget install nginx" },
+        { "desc": "卸载软件包", "status": "approximate",
+          "linux": "sudo dnf remove nginx", "macos": "brew uninstall nginx",
+          "windows": "winget uninstall nginx" },
+        { "desc": "搜索包", "status": "approximate",
+          "linux": "dnf search nginx", "macos": "brew search nginx",
+          "windows": "winget search nginx" },
+        { "desc": "安装本地 rpm 包", "status": "unsupported",
+          "linux": "sudo dnf install ./app.rpm", "macos": null,
+          "windows": null,
+          "caveats": ["rpm 是 Linux 专有格式，macOS/Windows 无对应"] }
+      ]
+    },
+    {
+      "id": "pacman",
+      "category": "pkg",
+      "summary": "Arch 包管理",
+      "names": { "linux": "pacman", "macos": "brew", "windows": "winget", "windows_cmd": "winget" },
+      "flags": [],
+      "recipes": [
+        { "desc": "安装软件包", "status": "approximate",
+          "linux": "sudo pacman -S nginx", "macos": "brew install nginx",
+          "windows": "winget install nginx" },
+        { "desc": "卸载软件包", "status": "approximate",
+          "linux": "sudo pacman -Rns nginx", "macos": "brew uninstall nginx",
+          "windows": "winget uninstall nginx" }
+      ]
+    },
+    {
+      "id": "brew",
+      "category": "pkg",
+      "summary": "Homebrew 包管理",
+      "names": { "linux": "brew", "macos": "brew", "windows": "", "windows_cmd": "" },
+      "flags": [
+        { "semantic": "安装", "linux": "install", "macos": "install", "windows": "", "windows_cmd": "" },
+        { "semantic": "卸载", "linux": "uninstall", "macos": "uninstall", "windows": "", "windows_cmd": "" },
+        { "semantic": "服务管理", "linux": "services", "macos": "services", "windows": "", "windows_cmd": "" }
+      ],
+      "recipes": [
+        { "desc": "安装", "status": "approximate",
+          "linux": "brew install jq", "macos": "brew install jq",
+          "windows": "winget install jqlang.jq" },
+        { "desc": "用 brew 管服务", "status": "unsupported",
+          "linux": "systemctl restart nginx", "macos": "brew services restart nginx",
+          "windows": null }
+      ]
+    },
+    {
+      "id": "winget",
+      "category": "pkg",
+      "summary": "Windows 官方包管理",
+      "names": { "linux": "apt", "macos": "brew", "windows": "winget", "windows_cmd": "winget" },
+      "flags": [],
+      "recipes": [
+        { "desc": "安装", "status": "approximate",
+          "linux": "sudo apt install 7zip", "macos": "brew install sevenzip",
+          "windows": "winget install 7zip.7zip" },
+        { "desc": "列出已安装", "status": "approximate",
+          "linux": "apt list --installed", "macos": "brew list",
+          "windows": "winget list" }
+      ]
+    },
+    {
+      "id": "choco",
+      "category": "pkg",
+      "summary": "Chocolatey 包管理",
+      "names": { "linux": "apt", "macos": "brew", "windows": "choco", "windows_cmd": "choco" },
+      "flags": [],
+      "recipes": [
+        { "desc": "安装", "status": "approximate",
+          "linux": "sudo apt install git", "macos": "brew install git",
+          "windows": "choco install git -y" }
+      ]
+    },
+    {
+      "id": "pip",
+      "category": "pkg",
+      "summary": "Python 包管理",
+      "names": { "linux": "pip3", "macos": "pip3", "windows": "pip", "windows_cmd": "pip" },
+      "fat_aliases": true,
+      "aliases": { "linux": ["pip"], "macos": ["pip"], "windows": ["py -m pip"] },
+      "flags": [
+        { "semantic": "安装", "linux": "install", "macos": "install", "windows": "install", "windows_cmd": "install" },
+        { "semantic": "用户级安装", "linux": "--user", "macos": "--user", "windows": "--user", "windows_cmd": "--user" }
+      ],
+      "recipes": [
+        { "desc": "安装包", "status": "equivalent",
+          "linux": "pip3 install requests", "macos": "pip3 install requests",
+          "windows": "py -m pip install requests", "windows_cmd": "py -m pip install requests",
+          "caveats": ["Windows 上 pip 可能不在 PATH，用 py -m pip 最稳"] },
+        { "desc": "按依赖文件安装", "status": "equivalent",
+          "linux": "pip3 install -r requirements.txt", "macos": "pip3 install -r requirements.txt",
+          "windows": "py -m pip install -r requirements.txt" },
+        { "desc": "冻结依赖版本", "status": "equivalent",
+          "linux": "pip3 freeze > requirements.txt", "macos": "pip3 freeze > requirements.txt",
+          "windows": "py -m pip freeze > requirements.txt" }
+      ]
+    },
+    {
+      "id": "npm",
+      "category": "pkg",
+      "summary": "Node 包管理",
+      "names": { "linux": "npm", "macos": "npm", "windows": "npm", "windows_cmd": "npm" },
+      "universal": true,
+      "flags": [
+        { "semantic": "全局安装", "linux": "-g", "macos": "-g", "windows": "-g", "windows_cmd": "-g" }
+      ],
+      "recipes": [
+        { "desc": "安装依赖", "status": "equivalent",
+          "linux": "npm install", "macos": "npm install",
+          "windows": "npm install" },
+        { "desc": "全局安装 CLI", "status": "equivalent",
+          "linux": "npm install -g pnpm", "macos": "npm install -g pnpm",
+          "windows": "npm install -g pnpm" }
+      ]
+    },
+    {
+      "id": "flatpak",
+      "category": "pkg",
+      "summary": "Flatpak 应用",
+      "names": { "linux": "flatpak", "macos": "", "windows": "", "windows_cmd": "" },
+      "flags": [],
+      "recipes": [
+        { "desc": "安装应用", "status": "unsupported",
+          "linux": "flatpak install flathub org.gimp.GIMP", "macos": null,
+          "windows": null, "windows_cmd": null,
+          "caveats": ["Flatpak 仅 Linux；macOS 用 brew cask，Windows 用 winget"] }
+      ]
+    }
+  ]
+}

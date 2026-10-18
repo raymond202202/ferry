@@ -1,0 +1,119 @@
+// ferry 映射库 — 管道惯用法（整条命令匹配，{name} 匹配单个 token）
+// 这类写法是逐段翻译最容易出错的地方，所以整条匹配优先。
+{
+  "commands": [],
+  "patterns": [
+    {
+      "id": "ps-grep", "desc": "按名字找进程", "status": "equivalent",
+      "linux": "ps aux | grep {name}", "macos": "ps aux | grep {name}",
+      "windows": "Get-Process -Name {name}", "windows_cmd": "tasklist | findstr {name}"
+    },
+    {
+      "id": "ps-ef-grep", "desc": "按名字找进程（-ef 风格）", "status": "equivalent",
+      "linux": "ps -ef | grep {name}", "macos": "ps -ef | grep {name}",
+      "windows": "Get-Process -Name {name}", "windows_cmd": "tasklist | findstr {name}"
+    },
+    {
+      "id": "count-lines-ls", "desc": "统计目录项数量", "status": "equivalent",
+      "linux": "ls -la | wc -l", "macos": "ls -la | wc -l",
+      "windows": "(Get-ChildItem -Force).Count", "windows_cmd": "dir /a | find /c /v \"\""
+    },
+    {
+      "id": "history-grep", "desc": "搜索命令历史", "status": "equivalent",
+      "linux": "history | grep {q}", "macos": "history | grep {q}",
+      "windows": "Get-History | Where-Object CommandLine -like '*{q}*'", "windows_cmd": "doskey /history | findstr {q}"
+    },
+    {
+      "id": "port-listen", "desc": "查看端口监听", "status": "equivalent",
+      "linux": "netstat -tlnp | grep {port}", "macos": "lsof -iTCP:{port} -sTCP:LISTEN",
+      "windows": "Get-NetTCPConnection -LocalPort {port} -State Listen", "windows_cmd": "netstat -ano | findstr :{port}"
+    },
+    {
+      "id": "find-xargs-rm", "desc": "查找并删除", "status": "approximate",
+      "linux": "find . -name {q} | xargs rm -f", "macos": "find . -name {q} | xargs rm -f",
+      "windows": "Get-ChildItem -Recurse -Filter {q} | Remove-Item -Force",
+      "windows_cmd": "for /r %i in ({q}) do @del /f \"%i\"",
+      "caveats": ["先去掉 | Remove-Item 跑一遍确认命中集合"]
+    },
+    {
+      "id": "grep-recursive", "desc": "递归搜索内容", "status": "approximate",
+      "linux": "grep -r {q} .", "macos": "grep -r {q} .",
+      "windows": "Get-ChildItem -Recurse -File | Select-String -Pattern {q}",
+      "windows_cmd": "findstr /s /n {q} *.*"
+    },
+    {
+      "id": "tail-grep", "desc": "跟踪日志并过滤", "status": "approximate",
+      "linux": "tail -f {f} | grep {q}", "macos": "tail -f {f} | grep {q}",
+      "windows": "Get-Content {f} -Wait -Tail 20 | Select-String -Pattern {q}",
+      "caveats": ["PowerShell -Wait 是轮询实现，非严格实时"]
+    },
+    {
+      "id": "cat-grep", "desc": "在文件中过滤行", "status": "equivalent",
+      "linux": "cat {f} | grep {q}", "macos": "cat {f} | grep {q}",
+      "windows": "Get-Content {f} | Select-String -Pattern {q}", "windows_cmd": "type {f} | findstr {q}"
+    },
+    {
+      "id": "ls-grep", "desc": "按名字筛选目录项", "status": "equivalent",
+      "linux": "ls | grep {q}", "macos": "ls | grep {q}",
+      "windows": "Get-ChildItem -Name | Select-String -Pattern {q}", "windows_cmd": "dir /b | findstr {q}"
+    },
+    {
+      "id": "top-sort-du", "desc": "按占用排序目录", "status": "approximate",
+      "linux": "du -sh * | sort -h", "macos": "du -sh * | sort -h",
+      "windows": "Get-ChildItem -Directory | ForEach-Object { [PSCustomObject]@{ Name=$_.Name; MB=[math]::Round(((Get-ChildItem $_.FullName -Recurse -File | Measure-Object Length -Sum).Sum/1MB),1) } } | Sort-Object MB"
+    },
+    {
+      "id": "sort-uniq-count", "desc": "统计重复行频次", "status": "approximate",
+      "linux": "sort {f} | uniq -c | sort -rn", "macos": "sort {f} | uniq -c | sort -rn",
+      "windows": "Get-Content {f} | Group-Object | Sort-Object Count -Descending | Select-Object Count, Name"
+    },
+    {
+      "id": "find-grep", "desc": "在匹配的文件里搜索", "status": "approximate",
+      "linux": "find . -name {q} | xargs grep {q2}", "macos": "find . -name {q} | xargs grep {q2}",
+      "windows": "Get-ChildItem -Recurse -Filter {q} | Select-String -Pattern {q2}"
+    },
+    {
+      "id": "chmod-exec", "desc": "给文件加可执行权限", "status": "unsupported",
+      "linux": "chmod +x {f}", "macos": "chmod +x {f}",
+      "windows": null, "windows_cmd": null,
+      "caveats": ["Windows 无可执行位概念（靠扩展名/关联）；在 WSL 内才需要 chmod"]
+    },
+    {
+      "id": "chmod-mode", "desc": "按数字模式改权限", "status": "unsupported",
+      "linux": "chmod {mode} {f}", "macos": "chmod {mode} {f}",
+      "windows": null, "windows_cmd": null,
+      "caveats": ["Windows 用 ACL：icacls {f} /grant 用户名:(F) —— 与 POSIX 权限位不是一一对应"]
+    },
+    {
+      "id": "systemctl-restart", "desc": "重启服务", "status": "approximate",
+      "linux": "systemctl restart {svc}", "macos": "brew services restart {svc}",
+      "windows": "Restart-Service {svc}", "windows_cmd": "sc stop {svc} & sc start {svc}",
+      "caveats": ["服务名可能不同：macOS 常用 brew 名，Windows 常用短名（W3SVC 等）；系统级 launchd 服务用 launchctl kickstart -k system/com.x"]
+    },
+    {
+      "id": "systemctl-start", "desc": "启动服务", "status": "approximate",
+      "linux": "systemctl start {svc}", "macos": "brew services start {svc}",
+      "windows": "Start-Service {svc}", "windows_cmd": "sc start {svc}"
+    },
+    {
+      "id": "systemctl-stop", "desc": "停止服务", "status": "approximate",
+      "linux": "systemctl stop {svc}", "macos": "brew services stop {svc}",
+      "windows": "Stop-Service {svc}", "windows_cmd": "sc stop {svc}"
+    },
+    {
+      "id": "systemctl-status", "desc": "查看服务状态", "status": "approximate",
+      "linux": "systemctl status {svc}", "macos": "brew services info {svc}",
+      "windows": "Get-Service {svc}", "windows_cmd": "sc query {svc}"
+    },
+    {
+      "id": "systemctl-enable", "desc": "开机自启", "status": "approximate",
+      "linux": "systemctl enable {svc}", "macos": "brew services start {svc}",
+      "windows": "Set-Service {svc} -StartupType Automatic", "windows_cmd": "sc config {svc} start= auto"
+    },
+    {
+      "id": "service-active", "desc": "确认服务是否在运行", "status": "approximate",
+      "linux": "systemctl status {svc} | grep Active", "macos": "launchctl list | grep {svc}",
+      "windows": "(Get-Service {svc}).Status", "windows_cmd": "sc query {svc} | findstr STATE"
+    }
+  ]
+}

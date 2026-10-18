@@ -1,0 +1,131 @@
+// ferry 映射库 — 压缩归档
+{
+  "commands": [
+    {
+      "id": "tar",
+      "category": "archive",
+      "summary": "tar 归档",
+      "names": { "linux": "tar", "macos": "tar", "windows": "tar", "windows_cmd": "tar" },
+      "universal": true,
+      "flags": [
+        { "semantic": "创建 gzip 归档", "linux": "czf", "macos": "czf", "windows": "czf", "windows_cmd": "czf" },
+        { "semantic": "解包 gzip 归档", "linux": "xzf", "macos": "xzf", "windows": "xzf", "windows_cmd": "xzf" },
+        { "semantic": "列出内容", "linux": "tzf", "macos": "tzf", "windows": "tf", "windows_cmd": "tf" }
+      ],
+      "recipes": [
+        { "desc": "打包为 tar.gz", "status": "equivalent",
+          "linux": "tar -czf app.tar.gz app/", "macos": "tar -czf app.tar.gz app/",
+          "windows": "tar -czf app.tar.gz app",
+          "caveats": ["Windows 10 1803+ 自带 bsdtar，参数与 GNU tar 基本兼容"] },
+        { "desc": "解包 tar.gz", "status": "equivalent",
+          "linux": "tar -xzf app.tar.gz -C /opt/", "macos": "tar -xzf app.tar.gz -C /opt/",
+          "windows": "tar -xzf app.tar.gz -C C:\\opt" },
+        { "desc": "查看归档内容", "status": "equivalent",
+          "linux": "tar -tzf app.tar.gz", "macos": "tar -tzf app.tar.gz",
+          "windows": "tar -tf app.tar.gz" },
+        { "desc": "排除目录打包", "status": "equivalent",
+          "linux": "tar -czf app.tar.gz --exclude=node_modules app/",
+          "macos": "tar -czf app.tar.gz --exclude=node_modules app/",
+          "windows": "tar -czf app.tar.gz --exclude=node_modules app",
+          "caveats": ["bsdtar 的 --exclude 是 glob，GNU 的是路径匹配，复杂规则需测试"] }
+      ]
+    },
+    {
+      "id": "zip",
+      "category": "archive",
+      "summary": "创建 zip",
+      "names": { "linux": "zip", "macos": "zip", "windows": "Compress-Archive", "windows_cmd": "powershell" },
+      "flags": [
+        { "semantic": "递归", "linux": "-r", "macos": "-r", "windows": "", "windows_cmd": "" },
+        { "semantic": "指定压缩级别", "linux": "-9", "macos": "-9", "windows": "-CompressionLevel Optimal", "windows_cmd": "" }
+      ],
+      "recipes": [
+        { "desc": "压缩目录为 zip", "status": "equivalent",
+          "linux": "zip -r app.zip app/", "macos": "zip -r app.zip app/",
+          "windows": "Compress-Archive -Path app -DestinationPath app.zip",
+          "windows_cmd": "powershell Compress-Archive -Path app -DestinationPath app.zip" },
+        { "desc": "最高压缩率", "status": "equivalent",
+          "linux": "zip -9 -r app.zip app/", "macos": "zip -9 -r app.zip app/",
+          "windows": "Compress-Archive -Path app -DestinationPath app.zip -CompressionLevel Optimal" }
+      ]
+    },
+    {
+      "id": "unzip",
+      "category": "archive",
+      "summary": "解压 zip",
+      "names": { "linux": "unzip", "macos": "unzip", "windows": "Expand-Archive", "windows_cmd": "tar" },
+      "flags": [
+        { "semantic": "解到指定目录", "linux": "-d out", "macos": "-d out", "windows": "-DestinationPath out", "windows_cmd": "-C out" }
+      ],
+      "recipes": [
+        { "desc": "解压到当前目录", "status": "equivalent",
+          "linux": "unzip app.zip", "macos": "unzip app.zip",
+          "windows": "Expand-Archive app.zip -DestinationPath .",
+          "windows_cmd": "tar -xf app.zip" },
+        { "desc": "解压到指定目录", "status": "equivalent",
+          "linux": "unzip app.zip -d /opt/app", "macos": "unzip app.zip -d /opt/app",
+          "windows": "Expand-Archive app.zip -DestinationPath C:\\opt\\app -Force" },
+        { "desc": "列出 zip 内容", "status": "equivalent",
+          "linux": "unzip -l app.zip", "macos": "unzip -l app.zip",
+          "windows": "tar -tf app.zip" }
+      ]
+    },
+    {
+      "id": "gzip",
+      "category": "archive",
+      "summary": "gzip 压缩单个文件",
+      "names": { "linux": "gzip", "macos": "gzip", "windows": "", "windows_cmd": "" },
+      "flags": [
+        { "semantic": "保留原文件", "linux": "-k", "macos": "-k", "windows": "", "windows_cmd": "" }
+      ],
+      "recipes": [
+        { "desc": "压缩文件（删除原文件）", "status": "approximate",
+          "linux": "gzip a.log", "macos": "gzip a.log",
+          "windows": "无内置 gzip；用 tar -czf 或 Compress-Archive" },
+        { "desc": "压缩并保留原文件", "status": "approximate",
+          "linux": "gzip -k a.log", "macos": "gzip -k a.log",
+          "windows": "tar -czf a.log.gz a.log" }
+      ]
+    },
+    {
+      "id": "gunzip",
+      "category": "archive",
+      "summary": "解压 gzip",
+      "names": { "linux": "gunzip", "macos": "gunzip", "windows": "", "windows_cmd": "" },
+      "flags": [],
+      "recipes": [
+        { "desc": "解压 .gz", "status": "approximate",
+          "linux": "gunzip a.log.gz", "macos": "gunzip a.log.gz",
+          "windows": "tar -xzf a.log.gz" }
+      ]
+    },
+    {
+      "id": "7z",
+      "category": "archive",
+      "summary": "7-Zip 归档",
+      "names": { "linux": "7z", "macos": "7z", "windows": "7z", "windows_cmd": "7z" },
+      "universal": true,
+      "flags": [],
+      "recipes": [
+        { "desc": "解压 7z", "status": "equivalent",
+          "linux": "7z x app.7z", "macos": "7z x app.7z",
+          "windows": "7z x app.7z",
+          "caveats": ["需先安装 p7zip / 7-Zip；Windows 也可用 tar -xf（新版支持 7z）"] }
+      ]
+    },
+    {
+      "id": "zstd",
+      "category": "archive",
+      "summary": "zstd 高压缩比",
+      "names": { "linux": "zstd", "macos": "zstd", "windows": "zstd", "windows_cmd": "zstd" },
+      "universal": true,
+      "flags": [],
+      "recipes": [
+        { "desc": "压缩文件", "status": "equivalent",
+          "linux": "zstd a.log", "macos": "zstd a.log", "windows": "zstd a.log" },
+        { "desc": "解压", "status": "equivalent",
+          "linux": "zstd -d a.log.zst", "macos": "zstd -d a.log.zst", "windows": "zstd -d a.log.zst" }
+      ]
+    }
+  ]
+}

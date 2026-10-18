@@ -1,0 +1,127 @@
+// ferry 映射库 — 服务与计划任务
+{
+  "commands": [
+    {
+      "id": "systemctl",
+      "category": "service",
+      "summary": "systemd 服务管理",
+      "names": { "linux": "systemctl", "macos": "", "windows": "Get-Service", "windows_cmd": "sc" },
+      "flags": [
+        { "semantic": "查看状态", "linux": "status", "macos": "", "windows": "", "windows_cmd": "query" },
+        { "semantic": "启动", "linux": "start", "macos": "", "windows": "Start-Service", "windows_cmd": "start" },
+        { "semantic": "停止", "linux": "stop", "macos": "", "windows": "Stop-Service", "windows_cmd": "stop" },
+        { "semantic": "重启", "linux": "restart", "macos": "", "windows": "Restart-Service", "windows_cmd": "" },
+        { "semantic": "开机自启", "linux": "enable", "macos": "", "windows": "", "windows_cmd": "config" }
+      ],
+      "recipes": [
+        { "desc": "查看服务状态", "status": "approximate",
+          "linux": "systemctl status nginx", "macos": "brew services info nginx",
+          "windows": "Get-Service nginx", "windows_cmd": "sc query nginx",
+          "caveats": ["macOS 服务由 launchd 管理：brew 装的用 brew services，系统服务用 launchctl；Windows 服务名常与产品名不同（如 W3SVC）"] },
+        { "desc": "重启服务", "status": "approximate",
+          "linux": "sudo systemctl restart nginx", "macos": "brew services restart nginx",
+          "windows": "Restart-Service nginx", "windows_cmd": "sc stop nginx && sc start nginx",
+          "caveats": ["Windows 需管理员权限"] },
+        { "desc": "开机自启", "status": "approximate",
+          "linux": "sudo systemctl enable nginx", "macos": "brew services start nginx",
+          "windows": "Set-Service nginx -StartupType Automatic",
+          "windows_cmd": "sc config nginx start= auto" },
+        { "desc": "列出运行中的服务", "status": "approximate",
+          "linux": "systemctl list-units --type=service --state=running",
+          "macos": "launchctl list",
+          "windows": "Get-Service | Where-Object Status -eq Running" },
+        { "desc": "重载配置（不重启）", "status": "unsupported",
+          "linux": "sudo systemctl reload nginx", "macos": null,
+          "windows": null, "windows_cmd": null,
+          "caveats": ["Windows 服务无 SIGHUP 语义，只能重启"] }
+      ]
+    },
+    {
+      "id": "journalctl",
+      "category": "service",
+      "summary": "systemd 日志",
+      "names": { "linux": "journalctl", "macos": "", "windows": "Get-WinEvent", "windows_cmd": "wevtutil" },
+      "flags": [
+        { "semantic": "指定服务", "linux": "-u nginx", "macos": "", "windows": "", "windows_cmd": "" },
+        { "semantic": "持续跟踪", "linux": "-f", "macos": "", "windows": "", "windows_cmd": "" },
+        { "semantic": "最近若干行", "linux": "-n 100", "macos": "", "windows": "", "windows_cmd": "" }
+      ],
+      "recipes": [
+        { "desc": "查看某服务日志", "status": "approximate",
+          "linux": "journalctl -u nginx -n 100 --no-pager",
+          "macos": "log show --predicate 'process == \"nginx\"' --last 1h",
+          "windows": "Get-WinEvent -FilterHashtable @{LogName='Application'; ProviderName='nginx'} -MaxEvents 100",
+          "windows_cmd": "wevtutil qe Application /c:100 /f:text" },
+        { "desc": "实时跟踪日志", "status": "approximate",
+          "linux": "journalctl -f -u nginx", "macos": "log stream --predicate 'process == \"nginx\"'",
+          "windows": "Get-WinEvent -LogName Application -MaxEvents 20 | ForEach-Object { $_; }" ,
+          "caveats": ["Windows 无 tail -f 式的实时事件流，需轮询或用事件订阅"] }
+      ]
+    },
+    {
+      "id": "service",
+      "category": "service",
+      "summary": "SysV 服务管理（旧版）",
+      "names": { "linux": "service", "macos": "", "windows": "Restart-Service", "windows_cmd": "net" },
+      "flags": [],
+      "recipes": [
+        { "desc": "重启服务", "status": "approximate",
+          "linux": "sudo service nginx restart", "macos": "sudo brew services restart nginx",
+          "windows": "Restart-Service nginx", "windows_cmd": "net stop nginx && net start nginx" }
+      ]
+    },
+    {
+      "id": "launchctl",
+      "category": "service",
+      "summary": "macOS launchd 服务管理",
+      "names": { "linux": "systemctl", "macos": "launchctl", "windows": "Get-Service", "windows_cmd": "sc" },
+      "flags": [],
+      "recipes": [
+        { "desc": "加载用户级服务（开机自启）", "status": "approximate",
+          "linux": "systemctl --user enable --now app.service",
+          "macos": "launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.me.app.plist",
+          "windows": "Set-Service app -StartupType Automatic; Start-Service app" },
+        { "desc": "立即重启某服务", "status": "approximate",
+          "linux": "systemctl restart app", "macos": "launchctl kickstart -k gui/$(id -u)/com.me.app",
+          "windows": "Restart-Service app" },
+        { "desc": "列出已加载服务", "status": "approximate",
+          "linux": "systemctl list-units --type=service", "macos": "launchctl list",
+          "windows": "Get-Service" }
+      ]
+    },
+    {
+      "id": "schtasks",
+      "category": "service",
+      "summary": "Windows 计划任务",
+      "names": { "linux": "crontab", "macos": "crontab", "windows": "Register-ScheduledTask", "windows_cmd": "schtasks" },
+      "flags": [],
+      "recipes": [
+        { "desc": "每天 3 点跑脚本", "status": "approximate",
+          "linux": "crontab -e  # 0 3 * * * /opt/backup.sh",
+          "macos": "crontab -e  # 0 3 * * * /opt/backup.sh",
+          "windows": "schtasks /create /tn Backup /tr \"C:\\opt\\backup.ps1\" /sc daily /st 03:00 /ru SYSTEM",
+          "caveats": ["macOS 用 crontab 需给终端/程序「完全磁盘访问权」；Windows 计划任务更接近 systemd timer"] }
+      ]
+    },
+    {
+      "id": "crontab",
+      "category": "service",
+      "summary": "用户级定时任务",
+      "names": { "linux": "crontab", "macos": "crontab", "windows": "", "windows_cmd": "schtasks" },
+      "flags": [
+        { "semantic": "编辑", "linux": "-e", "macos": "-e", "windows": "", "windows_cmd": "" },
+        { "semantic": "列出", "linux": "-l", "macos": "-l", "windows": "", "windows_cmd": "" }
+      ],
+      "recipes": [
+        { "desc": "列出定时任务", "status": "approximate",
+          "linux": "crontab -l", "macos": "crontab -l",
+          "windows": "Get-ScheduledTask | Where-Object TaskPath -eq '\\'",
+          "windows_cmd": "schtasks /query /fo table" },
+        { "desc": "编辑定时任务", "status": "unsupported",
+          "linux": "crontab -e", "macos": "crontab -e",
+          "windows": null,
+          "caveats": ["Windows 无 crontab；用 schtasks /create 或 Task Scheduler GUI"] }
+      ]
+    }
+  ]
+}

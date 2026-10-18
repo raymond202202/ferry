@@ -1,0 +1,167 @@
+// ferry 真机验证用例（drills）：断言某平台的实际行为，而不是"我记得是这样"
+// expect: success = 期望命令成功；fail = 期望命令失败（说明该特性不存在）
+{
+  "drills": [
+    {
+      "id": "sed-inplace-bsd", "platform": "macos", "shell": "posix",
+      "summary": "BSD sed 的 -i 不带备份后缀会失败",
+      "setup": "printf 'a\\n' > f.txt",
+      "cmd": "sed -i 's/a/b/' f.txt", "expect": "fail",
+      "note": "若此项变为 success，说明 macOS 换用了 GNU sed，映射表里的 sed -i '' 需要改"
+    },
+    {
+      "id": "sed-inplace-empty-suffix", "platform": "macos", "shell": "posix",
+      "summary": "sed -i '' 在 macOS 上可用",
+      "setup": "printf 'a\\n' > f.txt",
+      "cmd": "sed -i '' 's/a/b/' f.txt", "expect": "success"
+    },
+    {
+      "id": "stat-size-bsd", "platform": "macos", "shell": "posix",
+      "summary": "stat -f %z 可用，stat -c %s 不可用",
+      "setup": "printf 'abc' > f.txt",
+      "cmd": "stat -f %z f.txt", "expect": "success"
+    },
+    {
+      "id": "stat-gnu-flag-on-macos", "platform": "macos", "shell": "posix",
+      "summary": "stat -c %s 在 macOS 失败",
+      "setup": "printf 'abc' > f.txt",
+      "cmd": "stat -c %s f.txt", "expect": "fail"
+    },
+    {
+      "id": "date-j-f", "platform": "macos", "shell": "posix",
+      "summary": "date -j -f 解析日期可用",
+      "cmd": "date -j -f '%Y-%m-%d' '2026-01-31' +%s", "expect": "success"
+    },
+    {
+      "id": "date-d-missing", "platform": "macos", "shell": "posix",
+      "summary": "date -d 在 macOS 不可用",
+      "cmd": "date -d '2026-01-31' +%s", "expect": "fail"
+    },
+    {
+      "id": "timeout-missing", "platform": "macos", "shell": "posix",
+      "summary": "macOS 无 timeout",
+      "cmd": "command -v timeout", "expect": "fail"
+    },
+    {
+      "id": "nproc-missing", "platform": "macos", "shell": "posix",
+      "summary": "macOS 无 nproc",
+      "cmd": "command -v nproc", "expect": "fail"
+    },
+    {
+      "id": "sha256sum-missing", "platform": "macos", "shell": "posix",
+      "summary": "macOS 无 sha256sum，用 shasum -a 256",
+      "cmd": "command -v sha256sum", "expect": "fail"
+    },
+    {
+      "id": "shasum-256", "platform": "macos", "shell": "posix",
+      "summary": "shasum -a 256 可用",
+      "cmd": "printf 'abc' | shasum -a 256", "expect": "success"
+    },
+    {
+      "id": "grep-P-missing", "platform": "macos", "shell": "posix",
+      "summary": "BSD grep 无 -P",
+      "cmd": "printf 'a1\\n' | grep -P '\\d'", "expect": "fail"
+    },
+    {
+      "id": "sort-V-missing", "platform": "macos", "shell": "posix",
+      "summary": "BSD sort 无 -V",
+      "cmd": "printf '1.10\\n1.9\\n' | sort -V", "expect": "fail"
+    },
+    {
+      "id": "cp-a-supported", "platform": "macos", "shell": "posix",
+      "summary": "新版 macOS 的 cp 已支持 -a（旧版不支持）",
+      "setup": "mkdir -p d && printf 'x' > d/a.txt",
+      "cmd": "cp -a d e", "expect": "success",
+      "note": "此项为 success 则可放宽 cp -a 的警告"
+    },
+    {
+      "id": "base64-decode-capD", "platform": "macos", "shell": "posix",
+      "summary": "base64 -D 解码可用",
+      "cmd": "printf 'YWJj' | base64 -D", "expect": "success"
+    },
+    {
+      "id": "launchctl-list", "platform": "macos", "shell": "posix",
+      "summary": "launchctl list 可用",
+      "cmd": "launchctl list", "expect": "success"
+    },
+
+    {
+      "id": "timeout-exists", "platform": "linux", "shell": "posix",
+      "summary": "Linux 有 timeout",
+      "cmd": "command -v timeout", "expect": "success"
+    },
+    {
+      "id": "nproc-exists", "platform": "linux", "shell": "posix",
+      "summary": "Linux 有 nproc",
+      "cmd": "command -v nproc", "expect": "success"
+    },
+    {
+      "id": "sed-gnu-inplace", "platform": "linux", "shell": "posix",
+      "summary": "GNU sed 的 -i 不需要备份后缀",
+      "setup": "printf 'a\\n' > f.txt",
+      "cmd": "sed -i 's/a/b/' f.txt", "expect": "success"
+    },
+    {
+      "id": "stat-c-size", "platform": "linux", "shell": "posix",
+      "summary": "GNU stat -c %s 可用",
+      "setup": "printf 'abc' > f.txt",
+      "cmd": "stat -c %s f.txt", "expect": "success"
+    },
+    {
+      "id": "date-d", "platform": "linux", "shell": "posix",
+      "summary": "GNU date -d 可用",
+      "cmd": "date -d '2026-01-31' +%s", "expect": "success"
+    },
+
+    {
+      "id": "ps-remove-item", "platform": "windows", "shell": "powershell",
+      "summary": "Remove-Item 存在且可递归强制删除",
+      "setup": "New-Item -ItemType Directory sub -Force | Out-Null; New-Item -ItemType File sub\\a.txt -Force | Out-Null",
+      "cmd": "Remove-Item -Recurse -Force sub", "expect": "success"
+    },
+    {
+      "id": "ps-tail-wait", "platform": "windows", "shell": "powershell",
+      "summary": "Get-Content -Tail 存在",
+      "cmd": "Get-Content -Path $PSHOME\\profile.ps1 -Tail 1 -ErrorAction SilentlyContinue; $?", "expect": "success"
+    },
+    {
+      "id": "ps51-andand", "platform": "windows", "shell": "powershell",
+      "summary": "PS 5.1 不支持 &&（PS7 支持）",
+      "cmd": "echo a && echo b", "expect": "fail",
+      "note": "若为 success 说明在用 PowerShell 7+，可放宽 && 警告"
+    },
+    {
+      "id": "ps-select-string", "platform": "windows", "shell": "powershell",
+      "summary": "Select-String 可用且默认不区分大小写",
+      "cmd": "Select-String -Pattern 'ABC' -InputObject 'abc'", "expect": "success"
+    },
+    {
+      "id": "ps-get-cim-process", "platform": "windows", "shell": "powershell",
+      "summary": "Get-CimInstance Win32_Process 可取命令行",
+      "cmd": "(Get-CimInstance Win32_Process | Select-Object -First 1).CommandLine", "expect": "success"
+    },
+    {
+      "id": "cmd-no-singlequote", "platform": "windows", "shell": "cmd",
+      "summary": "cmd.exe 不认单引号（会当字面字符）",
+      "cmd": "echo 'a'", "expect": "success",
+      "note": "此drill仅验证可执行；单引号语义差异在 ferry 的 syntax 表里说明"
+    },
+    {
+      "id": "win-tar", "platform": "windows", "shell": "powershell",
+      "summary": "Windows 自带 tar（bsdtar）",
+      "cmd": "tar --version", "expect": "success"
+    },
+    {
+      "id": "win-curl", "platform": "windows", "shell": "powershell",
+      "summary": "Windows 自带 curl.exe",
+      "cmd": "curl.exe --version", "expect": "success"
+    },
+    {
+      "id": "win-symlink-needs-priv", "platform": "windows", "shell": "powershell",
+      "summary": "符号链接需权限/开发者模式（此项记录当前环境是否可建）",
+      "setup": "New-Item -ItemType File target.txt -Force | Out-Null",
+      "cmd": "New-Item -ItemType SymbolicLink -Path link.txt -Target target.txt", "expect": "success",
+      "note": "若为 fail：当前会话无建符号链接权限，ferry 会提醒管理员/开发者模式"
+    }
+  ]
+}
