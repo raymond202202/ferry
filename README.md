@@ -185,15 +185,14 @@ ferry prompt-export --to windows --max-chars 3000 > /tmp/win-cheatsheet.md
 
 ## 诚实的验证状态
 
-- ✅ **Linux 侧**：`ferry drills --to linux --run` 全绿（5/5），命令名在本机全部可解析（`doctor --live`）。
-- ✅ **引擎**：35 项单元测试覆盖词法、recipe、参数映射、路径/引号/变量转换、退出码、JSON 契约。
-- ⏳ **macOS / Windows 侧**：断言已写成可执行脚本（`drills --emit`），但**尚未在真机上跑过**——写这两台机器时都没在线。数据来自公开文档与实测经验，未经自证。
-  机器上线后各跑一次即可转绿：
+- ✅ **Linux 侧**：`ferry drills --to linux --run` 5/5；命令名本机可解析（`doctor --live`）。
+- ✅ **macOS 侧**：GitHub Actions 的 macOS runner 上逐条跑过（`drills --to macos --run`）——16 条严格断言全绿（`sed -i` 备份后缀、`stat -f`/`-c`、`date -j -f`/`-d`、`timeout`/`nproc` 缺失、`grep -P`、`cp -a`、`base64 -D`、`sort -h`、`du -h`、`find -exec +`、`launchctl` 等），3 条环境相关项（`sha256sum`/`sort -V`/coreutils 遮蔽）以 INFO 记录实际结果。
+- ✅ **引擎**：45 项单元测试（词法、recipe、参数映射、路径/引号/变量、退出码、JSON 契约、ssh 主机表）。
+- ⏳ **Windows 侧**：33 条断言里 14 条是 Windows 的，已写成可执行脚本，但**没有真机跑过**。CI 里没有 Windows job —— `drills --run` 用 `cmd.exe` 执行，而 Windows 断言是 PowerShell 写的，直接在 CI 跑会假失败，所以留给人机验证：
   ```bash
-  ferry drills --to macos   --emit sh  > /tmp/mac.sh && scp /tmp/mac.sh macbook:/tmp/ && ssh macbook 'sh /tmp/mac.sh'
-  ferry drills --to windows --emit ps1 > /tmp/win.ps1   # 在 T14 上 powershell -File win.ps1
+  ferry drills --to windows --emit ps1 > /tmp/win.ps1   # 在 Windows 上 powershell -File win.ps1
   ```
-  跑出与预期不符的项，就说明对应数据要改——这正是 drills 存在的意义。
+  跑出与预期不符的项，就说明对应数据要改——这正是 drills 存在的意义。macOS 那轮就是这么发现 `sort -V` 和 `sha256sum` 的判断过时的（新版 macOS 已支持，见 Changelog）。
 
 ## 开发
 

@@ -48,8 +48,8 @@
       "cmd": "command -v nproc", "expect": "fail"
     },
     {
-      "id": "sha256sum-missing", "platform": "macos", "shell": "posix",
-      "summary": "原生 macOS 无 sha256sum（装了 coreutils 会有）；ferry 一律生成 shasum",
+      "id": "sha256sum-present", "platform": "macos", "shell": "posix",
+      "summary": "macOS 15+ 自带 /sbin/sha256sum（更旧系统没有；shasum 两版都在）",
       "cmd": "command -v sha256sum", "expect": "any"
     },
     {
@@ -63,8 +63,8 @@
       "cmd": "printf 'a1\\n' | grep -P '\\d'", "expect": "fail"
     },
     {
-      "id": "sort-V-missing", "platform": "macos", "shell": "posix",
-      "summary": "原生 BSD sort 无 -V（coreutils 的 gsort 有）",
+      "id": "sort-V-support", "platform": "macos", "shell": "posix",
+      "summary": "sort -V 是否可用（macOS 15+ 支持；旧版 illega option）",
       "cmd": "printf '1.10\\n1.9\\n' | sort -V", "expect": "any"
     },
     {

@@ -178,10 +178,10 @@
         { "desc": "排序去重", "status": "equivalent",
           "linux": "sort -u a.txt", "macos": "sort -u a.txt",
           "windows": "Get-Content a.txt | Sort-Object -Unique" },
-        { "desc": "按版本号排序", "status": "unsupported",
-          "linux": "sort -V versions.txt", "macos": null,
+        { "desc": "按版本号排序", "status": "approximate",
+          "linux": "sort -V versions.txt", "macos": "sort -V versions.txt",
           "windows": "Get-Content versions.txt | Sort-Object { [version]$_ }",
-          "caveats": ["macOS 的 BSD sort 无 -V，需 brew install coreutils 用 gsort -V"] }
+          "caveats": ["macOS 15+ 的 sort 支持 -V（CI 实测通过）；更旧的系统会报 illegal option，此时 brew install coreutils 用 gsort -V"] }
       ]
     },
     {
@@ -363,7 +363,7 @@
         { "desc": "计算文件 SHA-256", "status": "equivalent",
           "linux": "sha256sum a.bin", "macos": "shasum -a 256 a.bin",
           "windows": "Get-FileHash a.bin -Algorithm SHA256", "windows_cmd": "certutil -hashfile a.bin SHA256",
-          "caveats": ["macOS 无 sha256sum，用 shasum -a 256（或 brew coreutils 的 gsha256sum）"] }
+          "caveats": ["macOS 15+ 自带 /sbin/sha256sum（CI 实测存在），更旧系统只有 shasum；shasum -a 256 两版都可用，故默认生成它"] }
       ]
     },
     {

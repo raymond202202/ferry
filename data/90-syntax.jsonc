@@ -180,9 +180,9 @@
     },
     {
       "id": "sort-v", "platforms": ["macos"],
-      "title": "BSD sort 无 -V / --parallel",
-      "detail": "版本号排序 sort -V 在 macOS 报错。",
-      "fix": "brew install coreutils 用 gsort -V；或在 PS/脚本里自己解析。"
+      "title": "sort -V 依赖系统版本",
+      "detail": "旧版 BSD sort 不认识 -V（illegal option）；macOS 15+ 实测支持（GitHub Actions macOS runner 通过）。",
+      "fix": "先直接试 sort -V；报错再 brew install coreutils 用 gsort -V，或在脚本里自己解析。"
     },
     {
       "id": "cp-a-macos", "platforms": ["macos"],
