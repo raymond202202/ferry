@@ -1150,6 +1150,10 @@ def translate(cmd: str, target: str, source: str | None, shell: str | None,
     # 0) 整体管道惯用法优先（ps aux | grep x 这类）
     pat = try_patterns(cmd, source, target, shell, kb)
     if pat is not None:
+        # 惯用法的 caveat 常是"另一个平台"的提示（Remove-Item / PowerShell ...），同样要过滤
+        pat.caveats = filter_caveats(pat.caveats, target)
+        if pat.status == "approximate" and not pat.caveats and same_command(pat.command, pat.input):
+            pat.status = "equivalent"
         t = Translation(cmd, source, target, shell, pat.status, pat.command, [pat], pat.caveats, inferred)
         if inferred:
             t.notes.append(f"源平台未指定，按命令名推断为 {PLATFORM_LABEL[source]}")
