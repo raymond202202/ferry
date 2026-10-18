@@ -961,7 +961,7 @@ def try_patterns(cmd: str, src: str, tgt: str, shell: str, kb: KB) -> SegResult 
             if out is None:
                 return SegResult(cmd, "", None, "unsupported", "unsupported",
                                  list(pat.get("caveats", []) or [])
-                                 + [f"{PLATFORM_LABEL[tgt]}/{shell} 无等价管道写法"])
+                                 + [f"{PLATFORM_LABEL[tgt]}/{shell} 下没有这条命令的等价写法"])
             return SegResult(cmd, "", fill(out, caps), pat.get("status", "equivalent"),
                              "pattern", list(pat.get("caveats", []) or []))
     return None
