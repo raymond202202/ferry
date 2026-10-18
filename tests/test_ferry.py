@@ -104,7 +104,7 @@ class TestTranslateCore(unittest.TestCase):
         self.assertIn("ls -la", t.command)
 
     def test_bsd_pcre_unsupported(self):
-        t = tr("grep -P '\\d{3}' a.txt", "macos")
+        t = tr("grep -P '\\d{3}' a.txt", "macos", frm="linux")
         self.assertEqual(t.status, "unsupported")
 
     def test_pipeline_pattern(self):

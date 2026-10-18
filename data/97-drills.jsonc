@@ -49,8 +49,8 @@
     },
     {
       "id": "sha256sum-missing", "platform": "macos", "shell": "posix",
-      "summary": "macOS 无 sha256sum，用 shasum -a 256",
-      "cmd": "command -v sha256sum", "expect": "fail"
+      "summary": "原生 macOS 无 sha256sum（装了 coreutils 会有）；ferry 一律生成 shasum",
+      "cmd": "command -v sha256sum", "expect": "any"
     },
     {
       "id": "shasum-256", "platform": "macos", "shell": "posix",
@@ -64,8 +64,13 @@
     },
     {
       "id": "sort-V-missing", "platform": "macos", "shell": "posix",
-      "summary": "BSD sort 无 -V",
-      "cmd": "printf '1.10\\n1.9\\n' | sort -V", "expect": "fail"
+      "summary": "原生 BSD sort 无 -V（coreutils 的 gsort 有）",
+      "cmd": "printf '1.10\\n1.9\\n' | sort -V", "expect": "any"
+    },
+    {
+      "id": "coreutils-shadow", "platform": "macos", "shell": "posix",
+      "summary": "是否装了 GNU coreutils 并遮住 BSD 工具（遮住则 sort -V/sha256sum 可用，ferry 的 BSD 警告会过重）",
+      "cmd": "sort --version 2>/dev/null | head -1 | grep -qi gnu", "expect": "any"
     },
     {
       "id": "cp-a-supported", "platform": "macos", "shell": "posix",

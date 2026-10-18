@@ -1602,8 +1602,11 @@ def _drill_script_posix(drills: list[dict], target: str) -> str:
             L.append(f"{{ {d['setup']} ; }} >/dev/null 2>&1")
         L.append(f"if sh -c {json.dumps(cmd, ensure_ascii=False)} >/dev/null 2>&1; "
                  f"then got=success; else got=fail; fi")
-        L.append(f'if [ "$got" = "{expect}" ]; then ok {json.dumps(did, ensure_ascii=False)}; '
-                 f'else ng {json.dumps(did + " (expect " + expect + ", got " + "$got" + ")", ensure_ascii=False)}; fi')
+        if expect == "any":
+            L.append(f'echo "INFO {did} got=$got"')
+        else:
+            L.append(f'if [ "$got" = "{expect}" ]; then ok {json.dumps(did, ensure_ascii=False)}; '
+                     f'else ng {json.dumps(did + " (expect " + expect + ", got " + "$got" + ")", ensure_ascii=False)}; fi')
         L.append('cd /; rm -rf "$d"')
         L.append("")
     L += ['echo', 'echo "通过 $pass，失败 $fail"',
@@ -1632,8 +1635,11 @@ def _drill_script_pwsh(drills: list[dict], target: str) -> str:
         L.append('  $got = "success"')
         L.append('} catch { $got = "fail" }')
         L.append("Pop-Location; Remove-Item -Recurse -Force $d -ErrorAction SilentlyContinue")
-        L.append(f'if ($got -eq "{expect}") {{ $pass++; Write-Host "OK   {did}" }}'
-                 f' else {{ $fail++; Write-Host "FAIL {did} (expect {expect}, got $got)" }}')
+        if expect == "any":
+            L.append(f'Write-Host "INFO {did} got=$got"')
+        else:
+            L.append(f'if ($got -eq "{expect}") {{ $pass++; Write-Host "OK   {did}" }}'
+                     f' else {{ $fail++; Write-Host "FAIL {did} (expect {expect}, got $got)" }}')
         L.append("")
     L += ['Write-Host ""', 'Write-Host "通过 $pass，失败 $fail"',
           'exit $(if ($fail -eq 0) { 0 } else { 2 })']
@@ -1669,6 +1675,12 @@ def cmd_drills(args, kb: KB) -> int:
                 proc = subprocess.run(cmd, shell=True, cwd=td, capture_output=True, text=True)
             got = "success" if proc.returncode == 0 else "fail"
             want = d.get("expect", "success")
+            if want == "any":
+                # 环境相关项（装了 GNU coreutils 就会变）：只记录，不影响通过与否
+                first = (proc.stdout or "").strip().splitlines()[:1]
+                extra = f" [{first[0][:60]}]" if first else ""
+                print(f"{color('INFO', 'dim')} {d['id']:<28} 实际 {got:<7} {d.get('summary','')}{extra}")
+                continue
             mark = color("OK  ", "green") if got == want else color("FAIL", "red")
             print(f"{mark} {d['id']:<28} 期望 {want:<7} 实际 {got:<7} {d.get('summary','')}")
             if got != want:
