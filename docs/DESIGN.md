@@ -90,6 +90,17 @@ JSONC（而不是 YAML）是因为**零依赖**：YAML 需要第三方库，而 
 - 返回结果强制标记 `inferred: true` + `llm_used: true`，caveat 第一行写明"LLM 推断，未写入映射库，请人工核对"。
 - **永不落库**。要沉淀就人工审核后写进 `data/`，并配一条 drill。
 
+## 7.5 远程执行层（ferry ssh）
+
+定位：把"翻译"和"执行"串起来，但**默认不执行**。
+
+- `~/.ferry/hosts.json` 存 `别名 → {platform, shell, user, port, note}`，与 flare 的 `translate_command` 共用；`ferry hosts add/list/remove` 管理。
+- dry-run 输出既是给人看的，也是给 agent 抄的：`ssh -o ConnectTimeout=8 -o BatchMode=yes dev@macbook 'ls -la /tmp'`。
+- 执行时用 `argv` 形式调 `ssh host <remote_cmd>`：命令作为**单个参数**传给 ssh，本地 shell 完全不参与，因此不需要手工处理引号。
+- Windows 目标用 `powershell -NoProfile -EncodedCommand <base64 utf16le>`：绕开 ssh → cmd → powershell 三层各自的引号规则（这是唯一可靠的写法，手拼引号必翻车）。
+- `unsupported` 直接拒绝执行（退出码 3），不会"猜一个"跑出去。
+- 不做：远端安装 ferry、多跳、交互式会话、凭据管理（密码交给 ssh/sshpass，ferry 不碰）。
+
 ## 8. 已知限制
 
 1. 管道语义差异只做到"提示"级别：PowerShell 是对象流，`grep`/`awk` 式的文本处理换成了 `Select-String` / `ForEach-Object`，但复杂表达式仍需改写。

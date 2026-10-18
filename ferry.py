@@ -31,6 +31,9 @@ import json
 import os
 import re
 import shutil
+import base64
+import shlex
+import subprocess
 import sys
 import textwrap
 import urllib.error
@@ -360,6 +363,11 @@ class Entry:
     def hint(self) -> str:
         return self.raw.get("hint", "") or ""
 
+    @property
+    def universal(self) -> bool:
+        """同一二进制三平台通用（git/curl/docker/ssh）：参数语义一致，不该硬翻。"""
+        return bool(self.raw.get("universal"))
+
     def name_for(self, platform: str, shell: str | None) -> str | None:
         if platform == "windows":
             if shell == "cmd":
@@ -595,6 +603,8 @@ def convert_token(tok: str, src: str, tgt: str, style: str, caveats: list[str]) 
         return tok
     if tgt == "windows" and is_posix_path(tok):
         out, notes = path_to_windows(tok)
+        if tok.endswith("/") and out and not out.endswith(("\\", "/")):
+            out += "\\"
         caveats.extend(notes)
         return quote_for(out, "windows") if " " in out else out
     if tgt != "windows" and is_win_path(tok):
@@ -647,6 +657,22 @@ def _norm_tokens(tokens: list[str]) -> list[str]:
     return [(t.rstrip("/") or "/") if t not in ("", "/") else t for t in tokens]
 
 
+def _slot_match(recipe_tok: str, input_tok: str) -> bool:
+    """recipe 里写的是示例值（TODO、app.tar.gz、src/），位置对齐后应当作槽位。
+
+    参数 token 必须精确相等（-P 与 -rn 不能混），非参数 token 允许不同值。
+    """
+    if recipe_tok == input_tok:
+        return True
+    if recipe_tok.startswith("-") or input_tok.startswith("-"):
+        return False
+    # cmd 风格开关 /w /s /b 也算参数，必须精确匹配（路径 /home/x 不算）
+    switch = re.compile(r"/[A-Za-z?]{1,3}$")
+    if switch.match(recipe_tok) or switch.match(input_tok):
+        return False
+    return True
+
+
 def recipe_match(entry: Entry, src_key: str, tokens: list[str]) -> dict | None:
     """精确匹配 recipe（按 token 归一化，忽略引号与尾部斜杠差异）。"""
     want = _norm_tokens(tokens)
@@ -654,7 +680,20 @@ def recipe_match(entry: Entry, src_key: str, tokens: list[str]) -> dict | None:
         s = r.get(src_key)
         if not s:
             continue
-        if _norm_tokens(tokenize(s)) == want:
+        rt = _norm_tokens(tokenize(s))
+        if len(rt) != len(want):
+            continue
+        # 先试精确匹配，再试"示例值当槽位"的匹配——同一位置只能命中一条 recipe
+        if rt == want:
+            return r
+    for r in entry.recipes:
+        s = r.get(src_key)
+        if not s:
+            continue
+        rt = _norm_tokens(tokenize(s))
+        if len(rt) != len(want):
+            continue
+        if all(_slot_match(a, b) for a, b in zip(rt, want)):
             return r
     return None
 
@@ -699,6 +738,9 @@ def translate_segment(seg: str, src: str, tgt: str, shell_tgt: str, kb: KB,
                 alt = entry.exact_name_for(tgt, shell_tgt)
                 return SegResult(seg, "", None, "unsupported", "unsupported",
                                  caveats + [f"{PLATFORM_LABEL[tgt]} / {shell_tgt} 无等价命令"])
+            val = substitute_recipe_literals(val, r, src_key, tokens[idx:])
+            if tgt != "windows":  # Windows 路径不带尾斜杠；POSIX 目标要保留目录语义
+                val = preserve_trailing_slash(val, tokens[idx:])
             return SegResult(seg, "", val, status, "recipe", caveats, notes)
 
     # 2) 无条目：判断是否跨平台同名（git/curl/docker...）
@@ -732,8 +774,13 @@ def translate_segment(seg: str, src: str, tgt: str, shell_tgt: str, kb: KB,
         return SegResult(seg, "", None, "unsupported", "unsupported", caveats)
 
     # 3) flag / 参数级翻译
-    out_args, fcaveats, unknown, dropped = translate_flags(
-        args, entry, src_key, tgt_key, tgt, shell_tgt)
+    if entry.universal:
+        # 同一个二进制在三平台都跑（git/curl/docker/ssh）：参数语义一致，
+        # 硬翻参数只会把 -fsSL 这种正确写法丢掉
+        out_args, fcaveats, unknown, dropped = list(args), [], False, set()
+    else:
+        out_args, fcaveats, unknown, dropped = translate_flags(
+            args, entry, src_key, tgt_key, tgt, shell_tgt)
     caveats.extend(fcaveats)
     if dropped & DANGEROUS_FLAGS:
         caveats.append(f"丢弃的参数 {', '.join(sorted(dropped & DANGEROUS_FLAGS))} 会影响语义，"
@@ -854,7 +901,11 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
             if ok and lost:
                 caveats.append(f"参数 {', '.join(lost)} 在目标平台无对应，已丢弃")
             if ok:
-                out.extend(expanded)
+                # 全等映射时保留原组合写法（ls -la 不该被拆成 ls -l -a）
+                if not lost and expanded == ["-" + ch for ch in a[1:]]:
+                    out.append(a)
+                else:
+                    out.extend(expanded)
                 continue
         # 未识别：-h/--help 这类通用参数直通
         if a in ("--help", "-h", "-?", "/?", "--version", "-V"):
@@ -877,6 +928,77 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
             continue
         out.append(a)
     return out, caveats, unknown, dropped
+
+
+# ---------------------------------------------------------------------------
+# recipe 示例字面量回流 & caveat 平台过滤
+# ---------------------------------------------------------------------------
+
+PLATFORM_WORDS = {
+    "windows": re.compile(r"PowerShell|PS ?5\.1|\bcmd\.exe\b|Select-String|Get-[A-Z]\w+|"
+                          r"Remove-Item|Copy-Item|Start-Process|注册表|回收站|Windows|Win32|"
+                          r"icacls|winget|\bNUL\b|tasklist|findstr"),
+    "macos": re.compile(r"macOS|OS X|BSD|launchctl|Homebrew|brew |plutil|shasum|diskutil|"
+                        r"-j -f|ditto|\bpbpaste\b"),
+    "linux": re.compile(r"Linux|GNU|systemd|systemctl|\bdnf\b|\bapt\b|/proc|/etc/|\byum\b|"
+                        r"netstat|\biproute\b"),
+}
+
+
+def filter_caveats(caveats: list[str], target: str) -> list[str]:
+    """只保留适用于 target 的 caveat。
+
+    数据的 caveat 挂在 recipe 上（一条 recipe 服务三个目标平台），所以
+    "Select-String 不区分大小写" 这种 Windows 专属提示不该出现在 macOS 结果里。
+    只在一条 caveat 明确点名了别的平台时才丢，宁可多留也不误删。
+    """
+    out = []
+    for c in caveats:
+        mentioned = {p for p, rx in PLATFORM_WORDS.items() if rx.search(c)}
+        if mentioned and target not in mentioned:
+            continue
+        out.append(c)
+    return out
+
+
+def same_command(a: str | None, b: str | None) -> bool:
+    if not a or not b:
+        return False
+    ta = [t.strip("'\"") for t in tokenize(a)]
+    tb = [t.strip("'\"") for t in tokenize(b)]
+    return ta == tb
+
+
+def preserve_trailing_slash(val: str, input_toks: list[str]) -> str:
+    """输入是 app/，recipe 的目标平台写法是 app —— 目录语义要保留。"""
+    for t in input_toks:
+        if not t.endswith("/") or len(t) < 2:
+            continue
+        base = t.rstrip("/")
+        if not base:
+            continue
+        pat = re.compile(r"(?<![\w./\\-])" + re.escape(base) + r"(?![\w./\\-])")
+        val = pat.sub(base + "/", val)
+    return val
+
+
+def substitute_recipe_literals(val: str, recipe: dict, src_key: str,
+                               input_toks: list[str]) -> str:
+    """把 recipe 里的示例字面量换回用户实际输入。
+
+    recipe 写的是 `grep -rn TODO src/`，用户输入的是 `grep -rn TODO src`，
+    输出不该凭空多出一个 `src/`；`tar -xzf app.tar.gz` 也一样。
+    仅按位置对齐替换非参数 token，且在单词边界处替换，避免误伤。
+    """
+    rt = tokenize(recipe.get(src_key) or "")
+    if not rt or len(rt) != len(input_toks):
+        return val
+    for a, b in zip(rt, input_toks):
+        if a == b or a.startswith("-") or b.startswith("-") or len(a) < 2:
+            continue
+        pattern = re.compile(r"(?<![\w./\\-])" + re.escape(a) + r"(?![\w/\\-])")
+        val = pattern.sub(b.replace("\\", "\\\\"), val, count=1)
+    return val
 
 
 # ---------------------------------------------------------------------------
@@ -1048,6 +1170,15 @@ def translate(cmd: str, target: str, source: str | None, shell: str | None,
         all_caveats.extend(seg.caveats)
         status = worst(status, seg.status)
 
+    # caveat 按目标平台过滤；若近似状态的唯一理由被过滤掉、且命令与原命令一致，
+    # 说明这个方向其实是等价的（recipe 的 status 是三个平台共用的，会误伤）
+    status = "equivalent"
+    for s in segs:
+        s.caveats = filter_caveats(s.caveats, target)
+        if s.status == "approximate" and not s.caveats and same_command(s.command, s.input):
+            s.status = "equivalent"
+        status = worst(status, s.status)
+
     if any(s.status == "unsupported" for s in segs):
         status = "unsupported"
 
@@ -1062,6 +1193,9 @@ def translate(cmd: str, target: str, source: str | None, shell: str | None,
                 chunks.append(s.operator)
             chunks.append(s.command)
         command = " ".join(chunks) if chunks else None
+
+    # 过滤后重建（all_caveats 是过滤前的快照，不能直接用）
+    all_caveats = [c for s in segs for c in s.caveats]
 
     # 去重 caveat，保序
     seen, uniq = set(), []
@@ -1651,6 +1785,30 @@ def build_parser() -> argparse.ArgumentParser:
     dl.add_argument("--emit", choices=["sh", "ps1"], help="生成可在目标机运行的脚本")
     dl.set_defaults(func=cmd_drills)
 
+    hs = sub.add_parser("hosts", help="远程主机登记（ferry ssh 用）")
+    hs.add_argument("action", nargs="?", default="list", choices=["list", "add", "remove"])
+    hs.add_argument("alias", nargs="?")
+    hs.add_argument("platform", nargs="?")
+    hs.add_argument("--user")
+    hs.add_argument("--port", type=int)
+    hs.add_argument("--shell")
+    hs.add_argument("--note")
+    hs.add_argument("--json", action="store_true")
+    hs.set_defaults(func=cmd_hosts)
+
+    sh = sub.add_parser("ssh", help="翻译后通过 ssh 执行（默认 dry-run）")
+    sh.add_argument("host")
+    sh.add_argument("command", nargs=argparse.REMAINDER)
+    sh.add_argument("--to", help="目标平台（默认读 hosts 配置）")
+    sh.add_argument("--from", dest="from_os")
+    sh.add_argument("--shell")
+    sh.add_argument("--path-style", default="wsl")
+    sh.add_argument("--run", action="store_true", help="真的执行（默认只打印）")
+    sh.add_argument("--json", action="store_true")
+    sh.add_argument("--explain", action="store_true")
+    sh.add_argument("--timeout", type=int, default=60)
+    sh.set_defaults(func=cmd_ssh)
+
     st = sub.add_parser("stats", help="映射库统计")
     st.add_argument("--json", action="store_true")
     st.set_defaults(func=cmd_stats)
@@ -1658,6 +1816,181 @@ def build_parser() -> argparse.ArgumentParser:
     pl = sub.add_parser("platforms", help="平台与 shell 信息")
     pl.set_defaults(func=cmd_platforms)
     return p
+
+
+# ---------------------------------------------------------------- 远程主机（ssh）
+
+HOSTS_PATH = os.path.expanduser("~/.ferry/hosts.json")
+
+
+def load_hosts() -> dict:
+    """主机别名 → {platform, shell, user, note}。查找顺序：$FERRY_HOSTS → ~/.ferry/hosts.json。"""
+    for path in (os.environ.get("FERRY_HOSTS"), HOSTS_PATH):
+        if not path:
+            continue
+        try:
+            with open(os.path.expanduser(path), encoding="utf-8") as f:
+                return (json.load(f) or {}).get("hosts", {}) or {}
+        except FileNotFoundError:
+            continue
+        except Exception as e:  # 配置坏了要说，不要静默
+            print(f"[ferry] 读取主机配置失败 {path}: {e}", file=sys.stderr)
+    return {}
+
+
+def save_hosts(hosts: dict) -> None:
+    os.makedirs(os.path.dirname(HOSTS_PATH), exist_ok=True)
+    with open(HOSTS_PATH, "w", encoding="utf-8") as f:
+        json.dump({"hosts": hosts}, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
+def windows_encoded_command(cmd: str) -> str:
+    """PowerShell -EncodedCommand 用 UTF-16LE base64，绕开 ssh → cmd → powershell 三层引号地狱。"""
+    return base64.b64encode(cmd.encode("utf-16-le")).decode("ascii")
+
+
+def wrap_for_remote(cmd: str, platform: str, shell: str | None) -> str:
+    """把目标平台的命令包成"远端 shell 能正确解析"的形式。"""
+    if platform == "windows":
+        if (shell or "powershell") == "cmd":
+            return f'cmd /c "{cmd}"'
+        return f"powershell -NoProfile -EncodedCommand {windows_encoded_command(cmd)}"
+    return cmd
+
+
+def ssh_argv(host: str, remote_cmd: str, user: str | None, port: int | None,
+             extra: list[str] | None = None) -> list[str]:
+    """argv 形式调用 ssh —— 命令作为单个参数传入，本地不过 shell，天然免引号问题。"""
+    argv = ["ssh", "-o", "ConnectTimeout=8", "-o", "BatchMode=yes"]
+    if port:
+        argv += ["-p", str(port)]
+    if extra:
+        argv += extra
+    argv.append(f"{user}@{host}" if user and "@" not in host else host)
+    argv.append(remote_cmd)
+    return argv
+
+
+def cmd_hosts(args, kb: KB) -> int:
+    hosts = load_hosts()
+    if args.action == "add":
+        if not args.alias or not args.platform:
+            print("用法：ferry hosts add <别名> <linux|macos|windows> [--user U] [--port 22] [--note 备注]",
+                  file=sys.stderr)
+            return 4
+        hosts[args.alias] = {
+            "platform": normalize_platform(args.platform),
+            "shell": args.shell,
+            "user": args.user,
+            "port": args.port,
+            "note": args.note,
+        }
+        hosts[args.alias] = {k: v for k, v in hosts[args.alias].items() if v is not None}
+        save_hosts(hosts)
+        print(f"已登记 {args.alias} → {args.platform}（{HOSTS_PATH}）")
+        return 0
+    if args.action == "remove":
+        if args.alias in hosts:
+            hosts.pop(args.alias)
+            save_hosts(hosts)
+            print(f"已移除 {args.alias}")
+            return 0
+        print(f"没有这个别名：{args.alias}", file=sys.stderr)
+        return 4
+
+    if args.json:
+        print(json.dumps({"schema": SCHEMA, "config": HOSTS_PATH, "hosts": hosts},
+                         ensure_ascii=False, indent=2))
+        return 0
+    if not hosts:
+        print(f"还没有登记远程主机。配置文件：{HOSTS_PATH}")
+        print("加一台：ferry hosts add macbook macos --user dev")
+        return 0
+    print(f"远程主机（{HOSTS_PATH}）")
+    print()
+    for alias, info in sorted(hosts.items()):
+        plat = PLATFORM_LABEL.get(info.get("platform"), info.get("platform"))
+        extra = " ".join(f"{k}={v}" for k, v in info.items() if k != "platform" and v)
+        print(f"  {alias:<12} {plat:<8} {extra}")
+    print()
+    print('dry-run：ferry ssh macbook "ls -la"        真执行：加 --run')
+    return 0
+
+
+def cmd_ssh(args, kb: KB) -> int:
+    hosts = load_hosts()
+    info = hosts.get(args.host) or {}
+    target = normalize_platform(args.to or info.get("platform"))
+    cmd_tokens = list(args.command) if isinstance(args.command, list) else [args.command or ""]
+    # command 用 REMAINDER 吞掉后面所有 token，所以尾部的 --run/--json 要在这里认出来
+    for flag in ("--run", "--json", "--explain", "--dry-run"):
+        while flag in cmd_tokens:
+            cmd_tokens.remove(flag)
+            if flag == "--dry-run":
+                args.run = False
+            else:
+                setattr(args, flag.lstrip("-"), True)
+    cmd = " ".join(t for t in cmd_tokens if t)
+    if not cmd:
+        print('缺少命令：ferry ssh macbook "ls -la"', file=sys.stderr)
+        return 4
+    if not target:
+        print(f"不知道 {args.host} 是什么系统。登记一下，或加 --to：\n"
+              f"  ferry hosts add {args.host} macos --user dev\n"
+              f"  ferry ssh {args.host} \"{cmd}\" --to windows", file=sys.stderr)
+        return 4
+
+    shell = args.shell or info.get("shell")
+    t = translate(cmd, target, args.from_os or current_platform(), shell, kb, args.path_style)
+    remote = wrap_for_remote(t.command, target, shell) if t.command else None
+    argv = ssh_argv(args.host, remote, info.get("user"), info.get("port")) if remote else None
+
+    rc = EXIT_CODE.get(t.status, 3)
+    if args.json:
+        print(json.dumps({
+            "schema": SCHEMA, "host": args.host, "target": target, "shell": shell or DEFAULT_SHELL.get(target),
+            "status": t.status, "command": t.command, "caveats": t.caveats,
+            "ssh_argv": argv, "executed": False if not args.run else True,
+        }, ensure_ascii=False, indent=2))
+
+    if not args.run:
+        if not args.json:
+            print_translation(t, args.explain)
+            if remote:
+                shown = " ".join(shlex.quote(a) for a in argv) if argv else ""
+                print()
+                print(color("远端执行（dry-run，未执行）", "bold"))
+                print("  " + shown)
+                if target == "windows":
+                    print(color("  PowerShell 走 -EncodedCommand，避免三层引号被吃掉", "dim"))
+                print(color("  确认无误后加 --run", "dim"))
+        return rc
+
+    if t.status == "unsupported" or not remote:
+        print("目标平台无等价命令，拒绝执行（--run 也不会执行 unsupported）", file=sys.stderr)
+        for c in t.caveats:
+            print("  • " + c, file=sys.stderr)
+        return 3
+
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=args.timeout)
+    except subprocess.TimeoutExpired:
+        print(f"ssh {args.host} 超时（{args.timeout}s）", file=sys.stderr)
+        return 2
+    except FileNotFoundError:
+        print("找不到 ssh 客户端", file=sys.stderr)
+        return 4
+    if proc.stdout:
+        sys.stdout.write(proc.stdout)
+    if proc.stderr:
+        sys.stderr.write(proc.stderr)
+    if proc.returncode != 0:
+        print(f"[ferry] ssh 退出码 {proc.returncode}", file=sys.stderr)
+        return 2
+    if t.status == "approximate":
+        print(color("\n[提示] 本次为近似等价翻译，差异见上", "yellow"), file=sys.stderr)
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:

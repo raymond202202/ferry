@@ -80,6 +80,24 @@
       "cmd": "printf 'YWJj' | base64 -D", "expect": "success"
     },
     {
+      "id": "sort-human", "platform": "macos", "shell": "posix",
+      "summary": "BSD sort 是否支持 -h（人类可读排序）",
+      "setup": "printf '1K\n2M\n3\n' > s.txt",
+      "cmd": "sort -hr s.txt", "expect": "success",
+      "note": "若 fail，Linux→macOS 的 du -h | sort -h 必须换成 sort -n 或 du -k"
+    },
+    {
+      "id": "du-human", "platform": "macos", "shell": "posix",
+      "summary": "BSD du 支持 -h",
+      "cmd": "du -h /tmp", "expect": "success"
+    },
+    {
+      "id": "find-exec-plus", "platform": "macos", "shell": "posix",
+      "summary": "BSD find 支持 -exec ... + 批量形式",
+      "setup": "printf 'x' > a.txt",
+      "cmd": "find . -maxdepth 1 -name 'a.txt' -exec du -h {} +", "expect": "success"
+    },
+    {
       "id": "launchctl-list", "platform": "macos", "shell": "posix",
       "summary": "launchctl list 可用",
       "cmd": "launchctl list", "expect": "success"

@@ -79,6 +79,22 @@ ferry drills --to macos --emit sh > verify-mac.sh     # 拷到 Mac 上跑
 ferry drills --to windows --emit ps1 > verify-win.ps1 # 拷到 Windows 上跑
 ```
 
+### 跨设备 SSH（这台机器最常用的姿势）
+
+```bash
+ferry hosts add macbook macos --user dev      # 登记一次，之后按别名走
+ferry hosts add winbox windows --user dev
+
+ferry ssh macbook "ls -la /tmp"                  # 默认 dry-run：翻译 + 打印现成 ssh 命令
+ferry ssh macbook "sed -i 's/a/b/' f.txt" --run  # 确认翻译没问题再真跑
+ferry ssh winbox "ps aux | grep node" --to windows  # 平台没登记时显式指定
+```
+
+- **默认 dry-run**：ssh 出去的命令错了，是远端静默做错事，先看再跑。
+- 命令以 argv 形式传给 `ssh`（`ssh host <cmd>` 单参数），本地不过 shell — 引号不会被吃掉；Windows 目标走 `powershell -EncodedCommand`（UTF-16LE base64），绕开 ssh→cmd→powershell 三层引号地狱。
+- `unsupported` 时 `--run` 也拒绝执行。
+- 目标机不需要装 ferry：本地翻译、远端执行。
+
 ### 退出码（给脚本/agent 用）
 
 | 码 | 含义 | 建议动作 |
@@ -156,7 +172,7 @@ ferry prompt-export --to windows --max-chars 3000 > /tmp/win-cheatsheet.md
 
 ## 覆盖范围
 
-127 条命令 / 245 条高频写法 / 21 条管道惯用法 / 24 条语法差异 / 22 个已知坑 / 29 条真机断言。
+127 条命令 / 245 条高频写法 / 21 条管道惯用法 / 24 条语法差异 / 22 个已知坑 / 32 条真机断言。
 
 | 类别 | 条数 | 类别 | 条数 |
 |---|---|---|---|
@@ -172,7 +188,7 @@ ferry prompt-export --to windows --max-chars 3000 > /tmp/win-cheatsheet.md
 - ⏳ **macOS / Windows 侧**：断言已写成可执行脚本（`drills --emit`），但**尚未在真机上跑过**——写这两台机器时都没在线。数据来自公开文档与实测经验，未经自证。
   机器上线后各跑一次即可转绿：
   ```bash
-  ferry drills --to macos   --emit sh  > /tmp/mac.sh && scp /tmp/mac.sh macmini:/tmp/ && ssh macmini 'sh /tmp/mac.sh'
+  ferry drills --to macos   --emit sh  > /tmp/mac.sh && scp /tmp/mac.sh macbook:/tmp/ && ssh macbook 'sh /tmp/mac.sh'
   ferry drills --to windows --emit ps1 > /tmp/win.ps1   # 在 T14 上 powershell -File win.ps1
   ```
   跑出与预期不符的项，就说明对应数据要改——这正是 drills 存在的意义。

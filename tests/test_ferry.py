@@ -3,7 +3,9 @@
 """ferry 回归测试：python3 -m unittest discover -s tests -v"""
 
 import json
+import os
 import subprocess
+import tempfile
 import sys
 import unittest
 from pathlib import Path
@@ -74,13 +76,36 @@ class TestTranslateCore(unittest.TestCase):
         self.assertIn("""'{"a":1}'""", t.command)
 
     def test_home_path_mapped(self):
-        t = tr("ls -la /home/fantastic", "windows")
+        t = tr("ls -la /home/user", "windows")
         self.assertIn("$env:USERPROFILE", t.command)
         self.assertEqual(t.status, "approximate")
 
     def test_env_var(self):
         t = tr("echo $PATH", "windows")
         self.assertIn("$env:PATH", t.command)
+
+    def test_recipe_example_literals_replaced(self):
+        # recipe 里的示例路径不能原样吐出来
+        t = tr("grep -rn TODO src", "macos")
+        self.assertEqual(t.command, "grep -rn TODO src")
+        self.assertNotIn("Select-String", " ".join(t.caveats))
+
+    def test_caveat_filtered_by_target(self):
+        t = tr("grep -rn TODO src", "windows")
+        self.assertTrue(any("Select-String" in c for c in t.caveats))
+
+    def test_universal_flags_pass_through(self):
+        # curl/git 这类三平台同一二进制，参数不该被"翻掉"
+        t = tr("curl -fsSL https://example.com/x.sh", "windows")
+        self.assertIn("-fsSL", t.command)
+
+    def test_combined_short_flag_kept(self):
+        t = tr("ls -la /tmp", "macos")
+        self.assertIn("ls -la", t.command)
+
+    def test_bsd_pcre_unsupported(self):
+        t = tr("grep -P '\\d{3}' a.txt", "macos")
+        self.assertEqual(t.status, "unsupported")
 
     def test_pipeline_pattern(self):
         t = tr("ps aux | grep nginx", "windows")
@@ -94,7 +119,11 @@ class TestTranslateCore(unittest.TestCase):
 
     def test_dangerous_flag_not_silently_dropped(self):
         t = tr("find . -name '*.log' -delete", "windows")
-        self.assertEqual(t.status, "unsupported")
+        # 不变量：删除动作不许被静默丢弃。要么明确无等价，要么给一条真的会删的命令 + caveat
+        self.assertNotEqual(t.status, "equivalent")
+        if t.command:
+            self.assertIn("Remove-Item", t.command)
+            self.assertTrue(t.caveats)
 
     def test_systemctl_pattern(self):
         t = tr("systemctl restart nginx", "macos")
@@ -163,6 +192,40 @@ class TestData(unittest.TestCase):
             for r in e.recipes:
                 self.assertIn(r.get("status", "equivalent"),
                               ("equivalent", "approximate", "unsupported"), e.id)
+
+
+class TestSshHosts(unittest.TestCase):
+    """hosts 登记与 ssh dry-run（不真的连远端）。"""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.env = dict(os.environ, FERRY_HOSTS=os.path.join(self.tmp, "hosts.json"))
+
+    def tearDown(self):
+        import shutil as _sh
+        _sh.rmtree(self.tmp, ignore_errors=True)
+
+    def run_cli(self, *args):
+        return subprocess.run([sys.executable, str(ROOT / "ferry.py"), *args],
+                              capture_output=True, text=True, env=self.env)
+
+    def test_hosts_add_then_list(self):
+        self.run_cli("hosts", "add", "box", "macos", "--user", "u")
+        r = self.run_cli("hosts", "--json")
+        self.assertEqual(r.returncode, 0)
+        self.assertEqual(json.loads(r.stdout)["hosts"]["box"]["platform"], "macos")
+
+    def test_ssh_dry_run_translates(self):
+        self.run_cli("hosts", "add", "box", "macos", "--user", "u")
+        r = self.run_cli("ssh", "box", "ls -la /tmp")
+        self.assertIn("macOS", r.stdout)
+        self.assertIn("ssh ", r.stdout)
+        self.assertIn("--run", r.stdout)          # 默认只打印，不执行
+        self.assertEqual(r.returncode, 0)
+
+    def test_ssh_unknown_host_errors(self):
+        r = self.run_cli("ssh", "nope", "ls")
+        self.assertEqual(r.returncode, 4)
 
 
 class TestCli(unittest.TestCase):
