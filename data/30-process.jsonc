@@ -5,24 +5,24 @@
       "id": "ps",
       "category": "process",
       "summary": "查看进程列表",
-      "names": { "linux": "ps", "macos": "ps", "windows": "Get-Process", "windows_cmd": "tasklist" },
+      "names": { "linux": "ps", "macos": "ps", "freebsd": "ps", "windows": "Get-Process", "windows_cmd": "tasklist" },
       "flags": [
-        { "semantic": "所有用户的所有进程", "linux": "aux", "macos": "aux", "windows": "", "windows_cmd": "" },
-        { "semantic": "完整格式", "linux": "-ef", "macos": "-ef", "windows": "", "windows_cmd": "" }
+        { "semantic": "所有用户的所有进程", "linux": "aux", "macos": "aux", "freebsd": "aux", "windows": "", "windows_cmd": "" },
+        { "semantic": "完整格式", "linux": "-ef", "macos": "-ef", "freebsd": "-ef", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "列出所有进程", "status": "approximate",
-          "linux": "ps aux", "macos": "ps aux",
+          "linux": "ps aux", "macos": "ps aux", "freebsd": "ps aux",
           "windows": "Get-Process", "windows_cmd": "tasklist",
           "caveats": ["Get-Process 无 用户/命令行 列，需要命令行用 Get-CimInstance Win32_Process"] },
         { "desc": "按名字查进程", "status": "equivalent",
-          "linux": "ps aux | grep nginx", "macos": "ps aux | grep nginx",
+          "linux": "ps aux | grep nginx", "macos": "ps aux | grep nginx", "freebsd": "ps aux | grep nginx",
           "windows": "Get-Process -Name nginx", "windows_cmd": "tasklist | findstr nginx" },
         { "desc": "查看进程命令行", "status": "approximate",
-          "linux": "ps -ef --forest", "macos": "ps -ef",
+          "linux": "ps -ef --forest", "macos": "ps -ef", "freebsd": "ps -ax",
           "windows": "Get-CimInstance Win32_Process | Select-Object ProcessId, ParentProcessId, CommandLine" },
         { "desc": "按 CPU 排序前 10", "status": "approximate",
-          "linux": "ps aux --sort=-%cpu | head -n 11", "macos": "ps aux -r | head -n 11",
+          "linux": "ps aux --sort=-%cpu | head -n 11", "macos": "ps aux -r | head -n 11", "freebsd": "ps aux -r | head -n 11",
           "windows": "Get-Process | Sort-Object CPU -Descending | Select-Object -First 10" }
       ]
     },
@@ -30,11 +30,11 @@
       "id": "top",
       "category": "process",
       "summary": "实时资源监视",
-      "names": { "linux": "top", "macos": "top", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "top", "macos": "top", "freebsd": "top", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "实时进程监视", "status": "approximate",
-          "linux": "top", "macos": "top",
+          "linux": "top", "macos": "top", "freebsd": "top",
           "windows": "Get-Process | Sort-Object CPU -Descending | Select-Object -First 15",
           "caveats": ["PowerShell 无 top；要交互式监视用任务管理器或 Install-Module Microsoft.PowerShell.ConsoleGuiTools"] }
       ]
@@ -43,17 +43,17 @@
       "id": "kill",
       "category": "process",
       "summary": "按 PID 结束进程",
-      "names": { "linux": "kill", "macos": "kill", "windows": "Stop-Process", "windows_cmd": "taskkill" },
+      "names": { "linux": "kill", "macos": "kill", "freebsd": "kill", "windows": "Stop-Process", "windows_cmd": "taskkill" },
       "flags": [
-        { "semantic": "强制杀死（SIGKILL）", "linux": "-9", "macos": "-9", "windows": "-Force", "windows_cmd": "/f" },
-        { "semantic": "列出信号", "linux": "-l", "macos": "-l", "windows": "", "windows_cmd": "" }
+        { "semantic": "强制杀死（SIGKILL）", "linux": "-9", "macos": "-9", "freebsd": "-9", "windows": "-Force", "windows_cmd": "/f" },
+        { "semantic": "列出信号", "linux": "-l", "macos": "-l", "freebsd": "-l", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "结束进程", "status": "equivalent",
-          "linux": "kill 1234", "macos": "kill 1234",
+          "linux": "kill 1234", "macos": "kill 1234", "freebsd": "kill 1234",
           "windows": "Stop-Process -Id 1234", "windows_cmd": "taskkill /pid 1234" },
         { "desc": "强制结束", "status": "equivalent",
-          "linux": "kill -9 1234", "macos": "kill -9 1234",
+          "linux": "kill -9 1234", "macos": "kill -9 1234", "freebsd": "kill -9 1234",
           "windows": "Stop-Process -Id 1234 -Force", "windows_cmd": "taskkill /f /pid 1234" }
       ]
     },
@@ -61,11 +61,11 @@
       "id": "killall",
       "category": "process",
       "summary": "按名字结束进程",
-      "names": { "linux": "killall", "macos": "killall", "windows": "Stop-Process", "windows_cmd": "taskkill" },
+      "names": { "linux": "killall", "macos": "killall", "freebsd": "killall", "windows": "Stop-Process", "windows_cmd": "taskkill" },
       "flags": [],
       "recipes": [
         { "desc": "结束所有同名进程", "status": "equivalent",
-          "linux": "killall nginx", "macos": "killall nginx",
+          "linux": "killall nginx", "macos": "killall nginx", "freebsd": "killall nginx",
           "windows": "Stop-Process -Name nginx -Force", "windows_cmd": "taskkill /f /im nginx.exe" }
       ]
     },
@@ -73,17 +73,17 @@
       "id": "pgrep",
       "category": "process",
       "summary": "按名字找 PID",
-      "names": { "linux": "pgrep", "macos": "pgrep", "windows": "Get-Process", "windows_cmd": "tasklist" },
+      "names": { "linux": "pgrep", "macos": "pgrep", "freebsd": "pgrep", "windows": "Get-Process", "windows_cmd": "tasklist" },
       "flags": [
-        { "semantic": "匹配完整命令行", "linux": "-f", "macos": "-f", "windows": "", "windows_cmd": "" },
-        { "semantic": "只输出 PID", "linux": "", "macos": "", "windows": "-Id", "windows_cmd": "" }
+        { "semantic": "匹配完整命令行", "linux": "-f", "macos": "-f", "freebsd": "-f", "windows": "", "windows_cmd": "" },
+        { "semantic": "只输出 PID", "linux": "", "macos": "", "freebsd": "", "windows": "-Id", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "按名字找 PID", "status": "equivalent",
-          "linux": "pgrep nginx", "macos": "pgrep -x nginx",
+          "linux": "pgrep nginx", "macos": "pgrep -x nginx", "freebsd": "pgrep -x nginx",
           "windows": "(Get-Process -Name nginx).Id", "windows_cmd": "tasklist | findstr nginx" },
         { "desc": "按命令行特征找 PID", "status": "approximate",
-          "linux": "pgrep -f 'java -jar app.jar'", "macos": "pgrep -f 'java -jar app.jar'",
+          "linux": "pgrep -f 'java -jar app.jar'", "macos": "pgrep -f 'java -jar app.jar'", "freebsd": "pgrep -f 'java -jar app.jar'",
           "windows": "Get-CimInstance Win32_Process -Filter \"Name='java.exe'\" | Where-Object CommandLine -like '*app.jar*' | Select-Object ProcessId" }
       ]
     },
@@ -91,18 +91,18 @@
       "id": "lsof",
       "category": "process",
       "summary": "查看打开的文件/端口",
-      "names": { "linux": "lsof", "macos": "lsof", "windows": "Get-NetTCPConnection", "windows_cmd": "netstat" },
+      "names": { "linux": "lsof", "macos": "lsof", "freebsd": "sockstat", "windows": "Get-NetTCPConnection", "windows_cmd": "netstat" },
       "flags": [
-        { "semantic": "按端口", "linux": "-i :8080", "macos": "-i :8080", "windows": "", "windows_cmd": "" },
-        { "semantic": "按 PID", "linux": "-p 1234", "macos": "-p 1234", "windows": "", "windows_cmd": "" }
+        { "semantic": "按端口", "linux": "-i :8080", "macos": "-i :8080", "freebsd": "-i :8080", "windows": "", "windows_cmd": "" },
+        { "semantic": "按 PID", "linux": "-p 1234", "macos": "-p 1234", "freebsd": "-p 1234", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "谁占用了 8080 端口", "status": "equivalent",
-          "linux": "lsof -i :8080", "macos": "lsof -i :8080",
+          "linux": "lsof -i :8080", "macos": "lsof -i :8080", "freebsd": "sockstat -4 -l | grep :8080",
           "windows": "Get-NetTCPConnection -LocalPort 8080 | Select-Object LocalAddress, LocalPort, State, OwningProcess",
           "windows_cmd": "netstat -ano | findstr :8080" },
         { "desc": "某 PID 打开的文件", "status": "approximate",
-          "linux": "lsof -p 1234", "macos": "lsof -p 1234",
+          "linux": "lsof -p 1234", "macos": "lsof -p 1234", "freebsd": "procstat -f 1234",
           "windows": "Get-Process -Id 1234 | Select-Object -ExpandProperty Modules",
           "caveats": ["Windows 只能看加载的模块（DLL），拿不到普通文件句柄；需 handle.exe"] }
       ]
@@ -111,11 +111,11 @@
       "id": "nohup",
       "category": "process",
       "summary": "后台运行且脱离终端",
-      "names": { "linux": "nohup", "macos": "nohup", "windows": "", "windows_cmd": "start" },
+      "names": { "linux": "nohup", "macos": "nohup", "freebsd": "nohup", "windows": "", "windows_cmd": "start" },
       "flags": [],
       "recipes": [
         { "desc": "后台跑脚本并记日志", "status": "approximate",
-          "linux": "nohup ./run.sh > run.log 2>&1 &", "macos": "nohup ./run.sh > run.log 2>&1 &",
+          "linux": "nohup ./run.sh > run.log 2>&1 &", "macos": "nohup ./run.sh > run.log 2>&1 &", "freebsd": "nohup ./run.sh > run.log 2>&1 &",
           "windows": "Start-Process -FilePath .\\run.cmd -RedirectStandardOutput run.log -RedirectStandardError run.err -WindowStyle Hidden",
           "windows_cmd": "start /b run.cmd > run.log 2>&1",
           "caveats": ["cmd 的 start /b 仍挂在当前控制台；要真正常驻用计划任务或 Windows 服务"] }
@@ -125,11 +125,11 @@
       "id": "timeout",
       "category": "process",
       "summary": "限时运行命令",
-      "names": { "linux": "timeout", "macos": "", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "timeout", "macos": "", "freebsd": "timeout", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "最多跑 30 秒", "status": "unsupported",
-          "linux": "timeout 30 ./slow.sh", "macos": null,
+          "linux": "timeout 30 ./slow.sh", "macos": null, "freebsd": "timeout 30 ./slow.sh",
           "windows": "Start-Process ./slow.ps1 -PassThru | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue",
           "caveats": ["macOS 无 timeout，需 brew install coreutils 用 gtimeout"] }
       ]
@@ -138,11 +138,11 @@
       "id": "watch",
       "category": "process",
       "summary": "周期性执行并刷新显示",
-      "names": { "linux": "watch", "macos": "", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "watch", "macos": "", "freebsd": "", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "每 2 秒跑一次", "status": "unsupported",
-          "linux": "watch -n 2 'df -h'", "macos": null,
+          "linux": "watch -n 2 'df -h'", "macos": null, "freebsd": "while true; do df -h; sleep 2; done",
           "windows": "while ($true) { Clear-Host; df -h; Start-Sleep 2 }",
           "caveats": ["macOS 默认无 watch（brew install watch 或用 while+sleep）"] }
       ]
@@ -151,11 +151,11 @@
       "id": "jobs",
       "category": "process",
       "summary": "查看后台作业",
-      "names": { "linux": "jobs", "macos": "jobs", "windows": "Get-Job", "windows_cmd": "" },
+      "names": { "linux": "jobs", "macos": "jobs", "freebsd": "jobs", "windows": "Get-Job", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "列出后台作业", "status": "approximate",
-          "linux": "jobs", "macos": "jobs",
+          "linux": "jobs", "macos": "jobs", "freebsd": "jobs",
           "windows": "Get-Job",
           "caveats": ["Get-Job 只管 PowerShell 作业，不含 Start-Process 起的进程"] }
       ]
@@ -164,11 +164,11 @@
       "id": "uptime",
       "category": "process",
       "summary": "系统运行时长与负载",
-      "names": { "linux": "uptime", "macos": "uptime", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "uptime", "macos": "uptime", "freebsd": "uptime", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "运行时长", "status": "equivalent",
-          "linux": "uptime", "macos": "uptime",
+          "linux": "uptime", "macos": "uptime", "freebsd": "uptime",
           "windows": "(Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime" }
       ]
     },
@@ -176,13 +176,13 @@
       "id": "free",
       "category": "process",
       "summary": "内存使用情况",
-      "names": { "linux": "free", "macos": "", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "free", "macos": "", "freebsd": "vmstat", "windows": "", "windows_cmd": "" },
       "flags": [
-        { "semantic": "人类可读", "linux": "-h", "macos": "", "windows": "", "windows_cmd": "" }
+        { "semantic": "人类可读", "linux": "-h", "macos": "", "freebsd": "", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "内存概况", "status": "approximate",
-          "linux": "free -h", "macos": "vm_stat",
+          "linux": "free -h", "macos": "vm_stat", "freebsd": "vmstat -s",
           "windows": "Get-CimInstance Win32_OperatingSystem | Select-Object @{n='TotalGB';e={[math]::Round($_.TotalVisibleMemorySize/1MB,1)}}, @{n='FreeGB';e={[math]::Round($_.FreePhysicalMemory/1MB,1)}}",
           "caveats": ["macOS 无 free，用 vm_stat（页数×16KB）或 top -l 1 | grep PhysMem"] }
       ]
@@ -191,11 +191,11 @@
       "id": "nproc",
       "category": "process",
       "summary": "CPU 核心数",
-      "names": { "linux": "nproc", "macos": "", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "nproc", "macos": "", "freebsd": "sysctl", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "核心数", "status": "equivalent",
-          "linux": "nproc", "macos": "sysctl -n hw.ncpu",
+          "linux": "nproc", "macos": "sysctl -n hw.ncpu", "freebsd": "sysctl -n hw.ncpu",
           "windows": "$env:NUMBER_OF_PROCESSORS",
           "caveats": ["macOS 无 nproc（brew coreutils 的 gnproc）"] }
       ]
@@ -204,11 +204,11 @@
       "id": "ulimit",
       "category": "process",
       "summary": "查看/设置资源限制",
-      "names": { "linux": "ulimit", "macos": "ulimit", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "ulimit", "macos": "ulimit", "freebsd": "ulimit", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "最大打开文件数", "status": "unsupported",
-          "linux": "ulimit -n", "macos": "ulimit -n",
+          "linux": "ulimit -n", "macos": "ulimit -n", "freebsd": "ulimit -n",
           "windows": null, "windows_cmd": null,
           "caveats": ["Windows 无 ulimit；句柄上限受注册表/系统配置影响，无等效命令"] }
       ]
@@ -217,14 +217,14 @@
       "id": "env",
       "category": "process",
       "summary": "查看环境变量",
-      "names": { "linux": "env", "macos": "env", "windows": "Get-ChildItem", "windows_cmd": "set" },
+      "names": { "linux": "env", "macos": "env", "freebsd": "env", "windows": "Get-ChildItem", "windows_cmd": "set" },
       "flags": [],
       "recipes": [
         { "desc": "列出全部环境变量", "status": "equivalent",
-          "linux": "env", "macos": "env",
+          "linux": "env", "macos": "env", "freebsd": "env",
           "windows": "Get-ChildItem Env:", "windows_cmd": "set" },
         { "desc": "带环境变量运行命令", "status": "approximate",
-          "linux": "env FOO=bar ./run.sh", "macos": "env FOO=bar ./run.sh",
+          "linux": "env FOO=bar ./run.sh", "macos": "env FOO=bar ./run.sh", "freebsd": "env FOO=bar ./run.sh",
           "windows": "$env:FOO='bar'; .\\run.ps1",
           "caveats": ["Windows 先赋值再执行，不是一次性前缀"] }
       ]
@@ -233,14 +233,14 @@
       "id": "export",
       "category": "process",
       "summary": "设置环境变量",
-      "names": { "linux": "export", "macos": "export", "windows": "", "windows_cmd": "set" },
+      "names": { "linux": "export", "macos": "export", "freebsd": "export", "windows": "", "windows_cmd": "set" },
       "flags": [],
       "recipes": [
         { "desc": "设置环境变量（当前会话）", "status": "equivalent",
-          "linux": "export FOO=bar", "macos": "export FOO=bar",
+          "linux": "export FOO=bar", "macos": "export FOO=bar", "freebsd": "export FOO=bar",
           "windows": "$env:FOO='bar'", "windows_cmd": "set FOO=bar" },
         { "desc": "永久写入用户环境", "status": "approximate",
-          "linux": "echo 'export FOO=bar' >> ~/.bashrc", "macos": "echo 'export FOO=bar' >> ~/.zshrc",
+          "linux": "echo 'export FOO=bar' >> ~/.bashrc", "macos": "echo 'export FOO=bar' >> ~/.zshrc", "freebsd": "echo 'export FOO=bar' >> ~/.profile",
           "windows": "[Environment]::SetEnvironmentVariable('FOO','bar','User')" }
       ]
     },
@@ -248,11 +248,11 @@
       "id": "history",
       "category": "process",
       "summary": "命令历史",
-      "names": { "linux": "history", "macos": "history", "windows": "Get-History", "windows_cmd": "doskey" },
+      "names": { "linux": "history", "macos": "history", "freebsd": "history", "windows": "Get-History", "windows_cmd": "doskey" },
       "flags": [],
       "recipes": [
         { "desc": "查看历史", "status": "approximate",
-          "linux": "history", "macos": "history",
+          "linux": "history", "macos": "history", "freebsd": "history",
           "windows": "Get-History", "windows_cmd": "doskey /history" }
       ]
     },
@@ -260,11 +260,11 @@
       "id": "alias",
       "category": "process",
       "summary": "命令别名",
-      "names": { "linux": "alias", "macos": "alias", "windows": "Set-Alias", "windows_cmd": "doskey" },
+      "names": { "linux": "alias", "macos": "alias", "freebsd": "alias", "windows": "Set-Alias", "windows_cmd": "doskey" },
       "flags": [],
       "recipes": [
         { "desc": "定义别名", "status": "approximate",
-          "linux": "alias ll='ls -l'", "macos": "alias ll='ls -l'",
+          "linux": "alias ll='ls -l'", "macos": "alias ll='ls -l'", "freebsd": "alias ll='ls -l'",
           "windows": "Set-Alias ll Get-ChildItem", "windows_cmd": "doskey ll=dir"
           , "caveats": ["PowerShell 的 Set-Alias 不能给带参数的别名；要带参数用 function"] }
       ]
@@ -273,11 +273,11 @@
       "id": "whoami",
       "category": "process",
       "summary": "当前用户",
-      "names": { "linux": "whoami", "macos": "whoami", "windows": "whoami", "windows_cmd": "whoami" },
+      "names": { "linux": "whoami", "macos": "whoami", "freebsd": "whoami", "windows": "whoami", "windows_cmd": "whoami" },
       "flags": [],
       "recipes": [
         { "desc": "当前用户名", "status": "equivalent",
-          "linux": "whoami", "macos": "whoami",
+          "linux": "whoami", "macos": "whoami", "freebsd": "whoami",
           "windows": "whoami", "windows_cmd": "whoami" }
       ]
     },
@@ -285,11 +285,11 @@
       "id": "id",
       "category": "process",
       "summary": "用户与组 ID",
-      "names": { "linux": "id", "macos": "id", "windows": "whoami", "windows_cmd": "whoami" },
+      "names": { "linux": "id", "macos": "id", "freebsd": "id", "windows": "whoami", "windows_cmd": "whoami" },
       "flags": [],
       "recipes": [
         { "desc": "用户与组信息", "status": "approximate",
-          "linux": "id", "macos": "id",
+          "linux": "id", "macos": "id", "freebsd": "id",
           "windows": "whoami /all", "windows_cmd": "whoami /all" }
       ]
     },
@@ -297,11 +297,11 @@
       "id": "hostname",
       "category": "process",
       "summary": "主机名",
-      "names": { "linux": "hostname", "macos": "hostname", "windows": "hostname", "windows_cmd": "hostname" },
+      "names": { "linux": "hostname", "macos": "hostname", "freebsd": "hostname", "windows": "hostname", "windows_cmd": "hostname" },
       "flags": [],
       "recipes": [
         { "desc": "主机名", "status": "equivalent",
-          "linux": "hostname", "macos": "hostname",
+          "linux": "hostname", "macos": "hostname", "freebsd": "hostname",
           "windows": "$env:COMPUTERNAME", "windows_cmd": "hostname" }
       ]
     },
@@ -309,19 +309,19 @@
       "id": "uname",
       "category": "process",
       "summary": "系统/内核信息",
-      "names": { "linux": "uname", "macos": "uname", "windows": "", "windows_cmd": "ver" },
+      "names": { "linux": "uname", "macos": "uname", "freebsd": "uname", "windows": "", "windows_cmd": "ver" },
       "flags": [
-        { "semantic": "全部信息", "linux": "-a", "macos": "-a", "windows": "", "windows_cmd": "" },
-        { "semantic": "内核名", "linux": "-s", "macos": "-s", "windows": "", "windows_cmd": "" },
-        { "semantic": "架构", "linux": "-m", "macos": "-m", "windows": "", "windows_cmd": "" }
+        { "semantic": "全部信息", "linux": "-a", "macos": "-a", "freebsd": "-a", "windows": "", "windows_cmd": "" },
+        { "semantic": "内核名", "linux": "-s", "macos": "-s", "freebsd": "-s", "windows": "", "windows_cmd": "" },
+        { "semantic": "架构", "linux": "-m", "macos": "-m", "freebsd": "-m", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "系统信息", "status": "approximate",
-          "linux": "uname -a", "macos": "uname -a",
+          "linux": "uname -a", "macos": "uname -a", "freebsd": "uname -a",
           "windows": "[Environment]::OSVersion.VersionString; $env:PROCESSOR_ARCHITECTURE",
           "windows_cmd": "ver" },
         { "desc": "架构", "status": "equivalent",
-          "linux": "uname -m", "macos": "uname -m",
+          "linux": "uname -m", "macos": "uname -m", "freebsd": "uname -m",
           "windows": "$env:PROCESSOR_ARCHITECTURE" }
       ]
     },
@@ -329,37 +329,41 @@
       "id": "date",
       "category": "process",
       "summary": "日期时间",
-      "names": { "linux": "date", "macos": "date", "windows": "Get-Date", "windows_cmd": "date" },
+      "names": { "linux": "date", "macos": "date", "freebsd": "date", "windows": "Get-Date", "windows_cmd": "date" },
       "flags": [
-        { "semantic": "格式化为 YYYY-MM-DD", "linux": "+%F", "macos": "+%F", "windows": "", "windows_cmd": "" },
-        { "semantic": "解析指定日期", "linux": "-d", "macos": "", "windows": "", "windows_cmd": "" }
+        { "semantic": "格式化为 YYYY-MM-DD", "linux": "+%F", "macos": "+%F", "freebsd": "+%F", "windows": "", "windows_cmd": "" },
+        { "semantic": "解析指定日期", "linux": "-d", "macos": "", "freebsd": "", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "当前时间", "status": "equivalent",
-          "linux": "date", "macos": "date",
+          "linux": "date", "macos": "date", "freebsd": "date",
           "windows": "Get-Date", "windows_cmd": "date /t" },
         { "desc": "格式化为 2026-01-31", "status": "equivalent",
-          "linux": "date +%F", "macos": "date +%F",
+          "linux": "date +%F", "macos": "date +%F", "freebsd": "date +%F",
           "windows": "Get-Date -Format 'yyyy-MM-dd'",
           "windows_cmd": "echo %date%" },
         { "desc": "解析时间字符串", "status": "approximate",
-          "linux": "date -d '2026-01-31' +%s", "macos": "date -j -f '%Y-%m-%d' '2026-01-31' +%s",
+          "linux": "date -d '2026-01-31' +%s", "macos": "date -j -f '%Y-%m-%d' '2026-01-31' +%s", "freebsd": "date -j -f '%Y-%m-%d' '2026-01-31' +%s",
           "windows": "[datetimeoffset]::Parse('2026-01-31').ToUnixTimeSeconds()",
           "caveats": ["macOS 的 BSD date 没有 -d，用 -j -f 指定输入格式"] },
         { "desc": "ISO 8601 时间戳", "status": "equivalent",
-          "linux": "date -Iseconds", "macos": "date +%Y-%m-%dT%H:%M:%S%z",
-          "windows": "Get-Date -Format o" }
+          "linux": "date -Iseconds", "macos": "date +%Y-%m-%dT%H:%M:%S%z", "freebsd": "date +%Y-%m-%dT%H:%M:%S%z",
+          "windows": "Get-Date -Format o" },
+        { "desc": "epoch 秒转日期", "status": "approximate",
+          "linux": "date -d @1700000000 +%F", "macos": "date -r 1700000000 +%F", "freebsd": "date -r 1700000000 +%F",
+          "windows": "[datetimeoffset]::FromUnixTimeSeconds(1700000000).ToString('yyyy-MM-dd')",
+          "caveats": ["BSD date 用 -r <epoch秒> 读秒数；Linux 的 -d @<epoch> 在 macOS/FreeBSD 都不认"] }
       ]
     },
     {
       "id": "sleep",
       "category": "process",
       "summary": "等待",
-      "names": { "linux": "sleep", "macos": "sleep", "windows": "Start-Sleep", "windows_cmd": "timeout" },
+      "names": { "linux": "sleep", "macos": "sleep", "freebsd": "sleep", "windows": "Start-Sleep", "windows_cmd": "timeout" },
       "flags": [],
       "recipes": [
         { "desc": "等待 5 秒", "status": "equivalent",
-          "linux": "sleep 5", "macos": "sleep 5",
+          "linux": "sleep 5", "macos": "sleep 5", "freebsd": "sleep 5",
           "windows": "Start-Sleep -Seconds 5", "windows_cmd": "timeout /t 5 /nobreak" }
       ]
     },
@@ -367,13 +371,13 @@
       "id": "dmesg",
       "category": "process",
       "summary": "内核/系统日志",
-      "names": { "linux": "dmesg", "macos": "", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "dmesg", "macos": "", "freebsd": "dmesg", "windows": "", "windows_cmd": "" },
       "flags": [
-        { "semantic": "持续跟踪", "linux": "-w", "macos": "", "windows": "", "windows_cmd": "" }
+        { "semantic": "持续跟踪", "linux": "-w", "macos": "", "freebsd": "", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "查看系统日志", "status": "approximate",
-          "linux": "dmesg -T | tail -n 50", "macos": "log show --last 5m --style compact",
+          "linux": "dmesg -T | tail -n 50", "macos": "log show --last 5m --style compact", "freebsd": "dmesg | tail -n 50",
           "windows": "Get-WinEvent -LogName System -MaxEvents 50",
           "caveats": ["macOS 需 sudo 或用 log show；Windows 是事件日志模型"] }
       ]
@@ -382,11 +386,11 @@
       "id": "strace",
       "category": "process",
       "summary": "跟踪系统调用",
-      "names": { "linux": "strace", "macos": "dtruss", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "strace", "macos": "dtruss", "freebsd": "truss", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "跟踪命令的系统调用", "status": "approximate",
-          "linux": "strace -f -e trace=network ./app", "macos": "sudo dtruss -f ./app",
+          "linux": "strace -f -e trace=network ./app", "macos": "sudo dtruss -f ./app", "freebsd": "truss -f ./app",
           "windows": "无内置等价；用 Sysinternals Process Monitor 或 WPR",
           "caveats": ["macOS 的 dtruss 受 SIP 限制，跟踪系统进程需关闭 SIP"] }
       ]
@@ -395,16 +399,16 @@
       "id": "shutdown",
       "category": "process",
       "summary": "关机",
-      "names": { "linux": "shutdown", "macos": "shutdown", "windows": "Stop-Computer", "windows_cmd": "shutdown" },
+      "names": { "linux": "shutdown", "macos": "shutdown", "freebsd": "shutdown", "windows": "Stop-Computer", "windows_cmd": "shutdown" },
       "flags": [
-        { "semantic": "立即关机", "linux": "-h now", "macos": "-h now", "windows": "", "windows_cmd": "/s /t 0" }
+        { "semantic": "立即关机", "linux": "-h now", "macos": "-h now", "freebsd": "-h now", "windows": "", "windows_cmd": "/s /t 0" }
       ],
       "recipes": [
         { "desc": "立即关机", "status": "equivalent",
-          "linux": "sudo shutdown -h now", "macos": "sudo shutdown -h now",
+          "linux": "sudo shutdown -h now", "macos": "sudo shutdown -h now", "freebsd": "shutdown -p now",
           "windows": "Stop-Computer -Force", "windows_cmd": "shutdown /s /t 0" },
         { "desc": "定时关机（60 分钟后）", "status": "equivalent",
-          "linux": "sudo shutdown -h +60", "macos": "sudo shutdown -h +60",
+          "linux": "sudo shutdown -h +60", "macos": "sudo shutdown -h +60", "freebsd": "shutdown -p +60",
           "windows": "Stop-Computer -Delay 3600", "windows_cmd": "shutdown /s /t 3600" }
       ]
     },
@@ -412,11 +416,11 @@
       "id": "reboot",
       "category": "process",
       "summary": "重启",
-      "names": { "linux": "reboot", "macos": "reboot", "windows": "Restart-Computer", "windows_cmd": "shutdown" },
+      "names": { "linux": "reboot", "macos": "reboot", "freebsd": "reboot", "windows": "Restart-Computer", "windows_cmd": "shutdown" },
       "flags": [],
       "recipes": [
         { "desc": "立即重启", "status": "equivalent",
-          "linux": "sudo reboot", "macos": "sudo reboot",
+          "linux": "sudo reboot", "macos": "sudo reboot", "freebsd": "reboot",
           "windows": "Restart-Computer -Force", "windows_cmd": "shutdown /r /t 0" }
       ]
     }

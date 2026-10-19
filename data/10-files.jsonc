@@ -6,36 +6,36 @@
       "id": "ls",
       "category": "files",
       "summary": "列出目录内容",
-      "names": { "linux": "ls", "macos": "ls", "windows": "Get-ChildItem", "windows_cmd": "dir" },
+      "names": { "linux": "ls", "macos": "ls", "freebsd": "ls", "windows": "Get-ChildItem", "windows_cmd": "dir" },
       "direct_flags": ["-l", "-a", "-h", "-R", "-S", "-t", "-r", "-1"],
       "flags": [
-        { "semantic": "包含隐藏项", "linux": "-a", "macos": "-a", "windows": "-Force", "windows_cmd": "/a" },
-        { "semantic": "长格式详情", "linux": "-l", "macos": "-l", "windows": "", "windows_cmd": "" },
-        { "semantic": "人类可读大小", "linux": "-h", "macos": "-h", "windows": "", "windows_cmd": "" },
-        { "semantic": "递归", "linux": "-R", "macos": "-R", "windows": "-Recurse", "windows_cmd": "/s" },
-        { "semantic": "按大小排序", "linux": "-S", "macos": "-S", "windows": "", "windows_cmd": "" },
-        { "semantic": "按修改时间排序", "linux": "-t", "macos": "-t", "windows": "", "windows_cmd": "" },
-        { "semantic": "仅名称", "linux": "-1", "macos": "-1", "windows": "-Name", "windows_cmd": "/b" },
-        { "semantic": "宽列表（多列）", "linux": "-C", "macos": "-C", "windows": "", "windows_cmd": "/w" },
-        { "semantic": "含隐藏项（cmd）", "linux": "-a", "macos": "-a", "windows": "-Force", "windows_cmd": "/a" },
-        { "semantic": "递归（cmd）", "linux": "-R", "macos": "-R", "windows": "-Recurse", "windows_cmd": "/s" }
+        { "semantic": "包含隐藏项", "linux": "-a", "macos": "-a", "freebsd": "-a", "windows": "-Force", "windows_cmd": "/a" },
+        { "semantic": "长格式详情", "linux": "-l", "macos": "-l", "freebsd": "-l", "windows": "", "windows_cmd": "" },
+        { "semantic": "人类可读大小", "linux": "-h", "macos": "-h", "freebsd": "-h", "windows": "", "windows_cmd": "" },
+        { "semantic": "递归", "linux": "-R", "macos": "-R", "freebsd": "-R", "windows": "-Recurse", "windows_cmd": "/s" },
+        { "semantic": "按大小排序", "linux": "-S", "macos": "-S", "freebsd": "-S", "windows": "", "windows_cmd": "" },
+        { "semantic": "按修改时间排序", "linux": "-t", "macos": "-t", "freebsd": "-t", "windows": "", "windows_cmd": "" },
+        { "semantic": "仅名称", "linux": "-1", "macos": "-1", "freebsd": "-1", "windows": "-Name", "windows_cmd": "/b" },
+        { "semantic": "宽列表（多列）", "linux": "-C", "macos": "-C", "freebsd": "-C", "windows": "", "windows_cmd": "/w" },
+        { "semantic": "含隐藏项（cmd）", "linux": "-a", "macos": "-a", "freebsd": "-a", "windows": "-Force", "windows_cmd": "/a" },
+        { "semantic": "递归（cmd）", "linux": "-R", "macos": "-R", "freebsd": "-R", "windows": "-Recurse", "windows_cmd": "/s" }
       ],
       "recipes": [
         { "desc": "详细列出（含隐藏项）", "status": "approximate",
-          "linux": "ls -la", "macos": "ls -la",
+          "linux": "ls -la", "macos": "ls -la", "freebsd": "ls -la",
           "windows": "Get-ChildItem -Force", "windows_cmd": "dir /a",
           "caveats": ["Windows 输出为表格式，列含义与 ls -l 不同"] },
         { "desc": "按大小降序", "status": "approximate",
-          "linux": "ls -lhS", "macos": "ls -lhS",
+          "linux": "ls -lhS", "macos": "ls -lhS", "freebsd": "ls -lhS",
           "windows": "Get-ChildItem | Sort-Object Length -Descending" },
         { "desc": "递归列出文件名", "status": "equivalent",
-          "linux": "ls -R", "macos": "ls -R",
+          "linux": "ls -R", "macos": "ls -R", "freebsd": "ls -R",
           "windows": "Get-ChildItem -Recurse -Name", "windows_cmd": "dir /s /b" },
         { "desc": "只列目录", "status": "equivalent",
-          "linux": "ls -d */", "macos": "ls -d */",
+          "linux": "ls -d */", "macos": "ls -d */", "freebsd": "ls -d */",
           "windows": "Get-ChildItem -Directory", "windows_cmd": "dir /ad" },
         { "desc": "按修改时间降序", "status": "approximate",
-          "linux": "ls -lt", "macos": "ls -lt",
+          "linux": "ls -lt", "macos": "ls -lt", "freebsd": "ls -lt",
           "windows": "Get-ChildItem | Sort-Object LastWriteTime -Descending" }
       ]
     },
@@ -43,11 +43,11 @@
       "id": "pwd",
       "category": "files",
       "summary": "显示当前目录",
-      "names": { "linux": "pwd", "macos": "pwd", "windows": "Get-Location", "windows_cmd": "cd" },
+      "names": { "linux": "pwd", "macos": "pwd", "freebsd": "pwd", "windows": "Get-Location", "windows_cmd": "cd" },
       "flags": [],
       "recipes": [
         { "desc": "显示当前目录", "status": "equivalent",
-          "linux": "pwd", "macos": "pwd",
+          "linux": "pwd", "macos": "pwd", "freebsd": "pwd",
           "windows": "Get-Location", "windows_cmd": "cd" }
       ]
     },
@@ -55,20 +55,20 @@
       "id": "cd",
       "category": "files",
       "summary": "切换目录",
-      "names": { "linux": "cd", "macos": "cd", "windows": "Set-Location", "windows_cmd": "cd" },
+      "names": { "linux": "cd", "macos": "cd", "freebsd": "cd", "windows": "Set-Location", "windows_cmd": "cd" },
       "flags": [],
       "recipes": [
         { "desc": "进入目录", "status": "equivalent",
-          "linux": "cd /var/log", "macos": "cd /var/log",
+          "linux": "cd /var/log", "macos": "cd /var/log", "freebsd": "cd /var/log",
           "windows": "Set-Location C:\\Windows\\Logs", "windows_cmd": "cd C:\\Windows\\Logs" },
         { "desc": "回到上一级", "status": "equivalent",
-          "linux": "cd ..", "macos": "cd ..",
+          "linux": "cd ..", "macos": "cd ..", "freebsd": "cd ..",
           "windows": "Set-Location ..", "windows_cmd": "cd .." },
         { "desc": "回到家目录", "status": "equivalent",
-          "linux": "cd ~", "macos": "cd ~",
+          "linux": "cd ~", "macos": "cd ~", "freebsd": "cd ~",
           "windows": "Set-Location $env:USERPROFILE", "windows_cmd": "cd %USERPROFILE%" },
         { "desc": "切到上次所在目录", "status": "approximate",
-          "linux": "cd -", "macos": "cd -",
+          "linux": "cd -", "macos": "cd -", "freebsd": "cd -",
           "windows": "Set-Location -", "windows_cmd": null,
           "caveats": ["cmd.exe 无等价，PowerShell 用 Set-Location -"] }
       ]
@@ -77,22 +77,22 @@
       "id": "cp",
       "category": "files",
       "summary": "复制文件或目录",
-      "names": { "linux": "cp", "macos": "cp", "windows": "Copy-Item", "windows_cmd": "copy" },
+      "names": { "linux": "cp", "macos": "cp", "freebsd": "cp", "windows": "Copy-Item", "windows_cmd": "copy" },
       "flags": [
-        { "semantic": "递归", "linux": "-r", "macos": "-R", "windows": "-Recurse", "windows_cmd": "/e" },
-        { "semantic": "覆盖不提示", "linux": "-f", "macos": "-f", "windows": "-Force", "windows_cmd": "/y" },
-        { "semantic": "保留属性", "linux": "-p", "macos": "-p", "windows": "", "windows_cmd": "" },
-        { "semantic": "仅更新较新文件", "linux": "-u", "macos": "", "windows": "", "windows_cmd": "" }
+        { "semantic": "递归", "linux": "-r", "macos": "-R", "freebsd": "-R", "windows": "-Recurse", "windows_cmd": "/e" },
+        { "semantic": "覆盖不提示", "linux": "-f", "macos": "-f", "freebsd": "-f", "windows": "-Force", "windows_cmd": "/y" },
+        { "semantic": "保留属性", "linux": "-p", "macos": "-p", "freebsd": "-p", "windows": "", "windows_cmd": "" },
+        { "semantic": "仅更新较新文件", "linux": "-u", "macos": "", "freebsd": "", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "复制文件", "status": "equivalent",
-          "linux": "cp a.txt b.txt", "macos": "cp a.txt b.txt",
+          "linux": "cp a.txt b.txt", "macos": "cp a.txt b.txt", "freebsd": "cp a.txt b.txt",
           "windows": "Copy-Item a.txt b.txt", "windows_cmd": "copy a.txt b.txt" },
         { "desc": "递归复制目录", "status": "equivalent",
-          "linux": "cp -r src/ dst/", "macos": "cp -R src/ dst/",
+          "linux": "cp -r src/ dst/", "macos": "cp -R src/ dst/", "freebsd": "cp -R src/ dst/",
           "windows": "Copy-Item -Recurse src dst", "windows_cmd": "xcopy src dst /e /i" },
         { "desc": "覆盖且不提示", "status": "equivalent",
-          "linux": "cp -f a.txt b.txt", "macos": "cp -f a.txt b.txt",
+          "linux": "cp -f a.txt b.txt", "macos": "cp -f a.txt b.txt", "freebsd": "cp -f a.txt b.txt",
           "windows": "Copy-Item -Force a.txt b.txt", "windows_cmd": "copy /y a.txt b.txt" }
       ]
     },
@@ -100,20 +100,20 @@
       "id": "mv",
       "category": "files",
       "summary": "移动或重命名",
-      "names": { "linux": "mv", "macos": "mv", "windows": "Move-Item", "windows_cmd": "move" },
+      "names": { "linux": "mv", "macos": "mv", "freebsd": "mv", "windows": "Move-Item", "windows_cmd": "move" },
       "flags": [
-        { "semantic": "覆盖不提示", "linux": "-f", "macos": "-f", "windows": "-Force", "windows_cmd": "/y" },
-        { "semantic": "不覆盖已有文件", "linux": "-n", "macos": "-n", "windows": "", "windows_cmd": "" }
+        { "semantic": "覆盖不提示", "linux": "-f", "macos": "-f", "freebsd": "-f", "windows": "-Force", "windows_cmd": "/y" },
+        { "semantic": "不覆盖已有文件", "linux": "-n", "macos": "-n", "freebsd": "-n", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "重命名", "status": "equivalent",
-          "linux": "mv a.txt b.txt", "macos": "mv a.txt b.txt",
+          "linux": "mv a.txt b.txt", "macos": "mv a.txt b.txt", "freebsd": "mv a.txt b.txt",
           "windows": "Move-Item a.txt b.txt", "windows_cmd": "move a.txt b.txt" },
         { "desc": "移动目录", "status": "equivalent",
-          "linux": "mv src/ /opt/", "macos": "mv src/ /opt/",
+          "linux": "mv src/ /opt/", "macos": "mv src/ /opt/", "freebsd": "mv src/ /opt/",
           "windows": "Move-Item src C:\\opt", "windows_cmd": "move src C:\\opt" },
         { "desc": "跨盘符移动目录", "status": "approximate",
-          "linux": "mv src/ /mnt/d/", "macos": "mv src/ /Volumes/D/",
+          "linux": "mv src/ /mnt/d/", "macos": "mv src/ /Volumes/D/", "freebsd": "mv src/ /mnt/D/",
           "windows": "Move-Item src D:\\",
           "caveats": ["Windows 跨卷 Move-Item 实为先复制后删除，大目录很慢且可能丢属性"] }
       ]
@@ -122,22 +122,22 @@
       "id": "rm",
       "category": "files",
       "summary": "删除文件或目录",
-      "names": { "linux": "rm", "macos": "rm", "windows": "Remove-Item", "windows_cmd": "del" },
+      "names": { "linux": "rm", "macos": "rm", "freebsd": "rm", "windows": "Remove-Item", "windows_cmd": "del" },
       "flags": [
-        { "semantic": "递归", "linux": "-r", "macos": "-R", "windows": "-Recurse", "windows_cmd": "/s" },
-        { "semantic": "强制不提示", "linux": "-f", "macos": "-f", "windows": "-Force", "windows_cmd": "/f" },
-        { "semantic": "显示正在删除", "linux": "-v", "macos": "-v", "windows": "-Verbose", "windows_cmd": "" }
+        { "semantic": "递归", "linux": "-r", "macos": "-R", "freebsd": "-R", "windows": "-Recurse", "windows_cmd": "/s" },
+        { "semantic": "强制不提示", "linux": "-f", "macos": "-f", "freebsd": "-f", "windows": "-Force", "windows_cmd": "/f" },
+        { "semantic": "显示正在删除", "linux": "-v", "macos": "-v", "freebsd": "-v", "windows": "-Verbose", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "删除文件", "status": "equivalent",
-          "linux": "rm a.txt", "macos": "rm a.txt",
+          "linux": "rm a.txt", "macos": "rm a.txt", "freebsd": "rm a.txt",
           "windows": "Remove-Item a.txt", "windows_cmd": "del a.txt" },
         { "desc": "递归强制删除目录", "status": "equivalent",
-          "linux": "rm -rf build/", "macos": "rm -rf build/",
+          "linux": "rm -rf build/", "macos": "rm -rf build/", "freebsd": "rm -rf build/",
           "windows": "Remove-Item -Recurse -Force build", "windows_cmd": "rmdir /s /q build",
           "caveats": ["Windows 直接永久删除，不进回收站；不可恢复"] },
         { "desc": "删除匹配文件", "status": "approximate",
-          "linux": "rm -f *.log", "macos": "rm -f *.log",
+          "linux": "rm -f *.log", "macos": "rm -f *.log", "freebsd": "rm -f *.log",
           "windows": "Remove-Item *.log -Force", "windows_cmd": "del /f *.log" }
       ]
     },
@@ -145,17 +145,17 @@
       "id": "mkdir",
       "category": "files",
       "summary": "创建目录",
-      "names": { "linux": "mkdir", "macos": "mkdir", "windows": "New-Item", "windows_cmd": "mkdir" },
+      "names": { "linux": "mkdir", "macos": "mkdir", "freebsd": "mkdir", "windows": "New-Item", "windows_cmd": "mkdir" },
       "flags": [
-        { "semantic": "创建多级父目录", "linux": "-p", "macos": "-p", "windows": "-Force", "windows_cmd": "" },
-        { "semantic": "显示创建过程", "linux": "-v", "macos": "-v", "windows": "-Verbose", "windows_cmd": "" }
+        { "semantic": "创建多级父目录", "linux": "-p", "macos": "-p", "freebsd": "-p", "windows": "-Force", "windows_cmd": "" },
+        { "semantic": "显示创建过程", "linux": "-v", "macos": "-v", "freebsd": "-v", "windows": "-Verbose", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "创建目录", "status": "equivalent",
-          "linux": "mkdir build", "macos": "mkdir build",
+          "linux": "mkdir build", "macos": "mkdir build", "freebsd": "mkdir build",
           "windows": "New-Item -ItemType Directory build", "windows_cmd": "mkdir build" },
         { "desc": "创建多级目录（已存在也不报错）", "status": "equivalent",
-          "linux": "mkdir -p a/b/c", "macos": "mkdir -p a/b/c",
+          "linux": "mkdir -p a/b/c", "macos": "mkdir -p a/b/c", "freebsd": "mkdir -p a/b/c",
           "windows": "New-Item -ItemType Directory -Force a\\b\\c", "windows_cmd": "mkdir a\\b\\c" }
       ]
     },
@@ -163,11 +163,11 @@
       "id": "rmdir",
       "category": "files",
       "summary": "删除空目录",
-      "names": { "linux": "rmdir", "macos": "rmdir", "windows": "Remove-Item", "windows_cmd": "rmdir" },
+      "names": { "linux": "rmdir", "macos": "rmdir", "freebsd": "rmdir", "windows": "Remove-Item", "windows_cmd": "rmdir" },
       "flags": [],
       "recipes": [
         { "desc": "删除空目录", "status": "equivalent",
-          "linux": "rmdir build", "macos": "rmdir build",
+          "linux": "rmdir build", "macos": "rmdir build", "freebsd": "rmdir build",
           "windows": "Remove-Item build", "windows_cmd": "rmdir build" }
       ]
     },
@@ -175,11 +175,11 @@
       "id": "touch",
       "category": "files",
       "summary": "创建空文件 / 更新修改时间",
-      "names": { "linux": "touch", "macos": "touch", "windows": "New-Item", "windows_cmd": "type" },
+      "names": { "linux": "touch", "macos": "touch", "freebsd": "touch", "windows": "New-Item", "windows_cmd": "type" },
       "flags": [],
       "recipes": [
         { "desc": "创建空文件（已存在则更新时间）", "status": "approximate",
-          "linux": "touch a.txt", "macos": "touch a.txt",
+          "linux": "touch a.txt", "macos": "touch a.txt", "freebsd": "touch a.txt",
           "windows": "if (Test-Path a.txt) { (Get-Item a.txt).LastWriteTime = Get-Date } else { New-Item -ItemType File a.txt }",
           "windows_cmd": "type nul > a.txt",
           "caveats": ["PowerShell 无 touch 等价物：New-Item 已存在会报错，需先判断；cmd 的 type nul > 会清空已有文件"] }
@@ -189,20 +189,20 @@
       "id": "ln",
       "category": "files",
       "summary": "创建链接（符号链接/硬链接）",
-      "names": { "linux": "ln", "macos": "ln", "windows": "New-Item", "windows_cmd": "mklink" },
+      "names": { "linux": "ln", "macos": "ln", "freebsd": "ln", "windows": "New-Item", "windows_cmd": "mklink" },
       "flags": [
-        { "semantic": "符号链接", "linux": "-s", "macos": "-s", "windows": "", "windows_cmd": "" },
-        { "semantic": "强制覆盖", "linux": "-f", "macos": "-f", "windows": "-Force", "windows_cmd": "" }
+        { "semantic": "符号链接", "linux": "-s", "macos": "-s", "freebsd": "-s", "windows": "", "windows_cmd": "" },
+        { "semantic": "强制覆盖", "linux": "-f", "macos": "-f", "freebsd": "-f", "windows": "-Force", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "创建符号链接", "status": "approximate",
           "linux": "ln -s /opt/app/current /usr/local/bin/app",
-          "macos": "ln -s /opt/app/current /usr/local/bin/app",
+          "macos": "ln -s /opt/app/current /usr/local/bin/app", "freebsd": "ln -s /opt/app/current /usr/local/bin/app",
           "windows": "New-Item -ItemType SymbolicLink -Path C:\\bin\\app -Target C:\\opt\\app\\current",
           "windows_cmd": "mklink C:\\bin\\app C:\\opt\\app\\current",
           "caveats": ["Windows 创建符号链接需管理员权限或开发者模式；mklink 的链接在前、目标在后（与 ln 顺序相反）"] },
         { "desc": "创建硬链接", "status": "equivalent",
-          "linux": "ln a.txt hard.txt", "macos": "ln a.txt hard.txt",
+          "linux": "ln a.txt hard.txt", "macos": "ln a.txt hard.txt", "freebsd": "ln a.txt hard.txt",
           "windows": "New-Item -ItemType HardLink -Path hard.txt -Target a.txt",
           "windows_cmd": "mklink /h hard.txt a.txt" }
       ]
@@ -211,28 +211,28 @@
       "id": "find",
       "category": "files",
       "summary": "按条件查找文件",
-      "names": { "linux": "find", "macos": "find", "windows": "Get-ChildItem", "windows_cmd": "dir" },
+      "names": { "linux": "find", "macos": "find", "freebsd": "find", "windows": "Get-ChildItem", "windows_cmd": "dir" },
       "flags": [
-        { "semantic": "按名称匹配", "linux": "-name", "macos": "-name", "windows": "-Filter", "windows_cmd": "" },
-        { "semantic": "仅文件", "linux": "-type f", "macos": "-type f", "windows": "-File", "windows_cmd": "/a-d" },
-        { "semantic": "仅目录", "linux": "-type d", "macos": "-type d", "windows": "-Directory", "windows_cmd": "/ad" },
-        { "semantic": "最近 N 天修改", "linux": "-mtime -7", "macos": "-mtime -7", "windows": "", "windows_cmd": "" }
+        { "semantic": "按名称匹配", "linux": "-name", "macos": "-name", "freebsd": "-name", "windows": "-Filter", "windows_cmd": "" },
+        { "semantic": "仅文件", "linux": "-type f", "macos": "-type f", "freebsd": "-type f", "windows": "-File", "windows_cmd": "/a-d" },
+        { "semantic": "仅目录", "linux": "-type d", "macos": "-type d", "freebsd": "-type d", "windows": "-Directory", "windows_cmd": "/ad" },
+        { "semantic": "最近 N 天修改", "linux": "-mtime -7", "macos": "-mtime -7", "freebsd": "-mtime -7", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "按名称递归查找", "status": "approximate",
-          "linux": "find . -name \"*.log\"", "macos": "find . -name \"*.log\"",
+          "linux": "find . -name \"*.log\"", "macos": "find . -name \"*.log\"", "freebsd": "find . -name \"*.log\"",
           "windows": "Get-ChildItem -Recurse -Filter *.log", "windows_cmd": "dir /s /b *.log",
           "caveats": ["PowerShell -Filter 用通配符语法但有怪癖（匹配 8.3 短名），复杂模式改用 -Include 或 Where-Object Name -like"] },
         { "desc": "查找最近 7 天修改的文件", "status": "approximate",
-          "linux": "find . -type f -mtime -7", "macos": "find . -type f -mtime -7",
+          "linux": "find . -type f -mtime -7", "macos": "find . -type f -mtime -7", "freebsd": "find . -type f -mtime -7",
           "windows": "Get-ChildItem -Recurse -File | Where-Object LastWriteTime -gt (Get-Date).AddDays(-7)",
           "windows_cmd": "forfiles /s /d -7 /c \"cmd /c echo @path\"" },
         { "desc": "查找并删除", "status": "approximate",
-          "linux": "find . -name \"*.tmp\" -delete", "macos": "find . -name \"*.tmp\" -delete",
+          "linux": "find . -name \"*.tmp\" -delete", "macos": "find . -name \"*.tmp\" -delete", "freebsd": "find . -name \"*.tmp\" -delete",
           "windows": "Get-ChildItem -Recurse -Filter *.tmp | Remove-Item -Force",
           "caveats": ["先无 -Remove-Item 跑一遍确认命中集合"] },
         { "desc": "查找大于 100M 的文件", "status": "approximate",
-          "linux": "find . -type f -size +100M", "macos": "find . -type f -size +100M",
+          "linux": "find . -type f -size +100M", "macos": "find . -type f -size +100M", "freebsd": "find . -type f -size +100M",
           "windows": "Get-ChildItem -Recurse -File | Where-Object Length -gt 100MB" }
       ]
     },
@@ -240,16 +240,16 @@
       "id": "which",
       "category": "files",
       "summary": "查找命令所在路径",
-      "names": { "linux": "which", "macos": "which", "windows": "Get-Command", "windows_cmd": "where" },
+      "names": { "linux": "which", "macos": "which", "freebsd": "which", "windows": "Get-Command", "windows_cmd": "where" },
       "flags": [
-        { "semantic": "列出全部匹配", "linux": "-a", "macos": "-a", "windows": "-All", "windows_cmd": "" }
+        { "semantic": "列出全部匹配", "linux": "-a", "macos": "-a", "freebsd": "-a", "windows": "-All", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "查命令路径", "status": "equivalent",
-          "linux": "which python3", "macos": "which python3",
+          "linux": "which python3", "macos": "which python3", "freebsd": "which python3",
           "windows": "(Get-Command python).Source", "windows_cmd": "where python" },
         { "desc": "列出所有同名命令", "status": "equivalent",
-          "linux": "which -a python", "macos": "which -a python",
+          "linux": "which -a python", "macos": "which -a python", "freebsd": "which -a python",
           "windows": "Get-Command python -All", "windows_cmd": "where python" }
       ]
     },
@@ -257,14 +257,14 @@
       "id": "tree",
       "category": "files",
       "summary": "树形显示目录",
-      "names": { "linux": "tree", "macos": "tree", "windows": "tree", "windows_cmd": "tree" },
+      "names": { "linux": "tree", "macos": "tree", "freebsd": "find", "windows": "tree", "windows_cmd": "tree" },
       "flags": [
-        { "semantic": "包含文件", "linux": "", "macos": "", "windows": "", "windows_cmd": "/f" },
-        { "semantic": "限制层级", "linux": "-L", "macos": "-L", "windows": "", "windows_cmd": "" }
+        { "semantic": "包含文件", "linux": "", "macos": "", "freebsd": "", "windows": "", "windows_cmd": "/f" },
+        { "semantic": "限制层级", "linux": "-L", "macos": "-L", "freebsd": "-L", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "树形显示含文件", "status": "approximate",
-          "linux": "tree -L 2", "macos": "tree -L 2",
+          "linux": "tree -L 2", "macos": "tree -L 2", "freebsd": "find . -maxdepth 2",
           "windows": "tree /F", "windows_cmd": "tree /F",
           "caveats": ["macOS 默认无 tree，需 brew install tree；Windows 的 tree 是 cmd 程序"] }
       ]
@@ -273,21 +273,21 @@
       "id": "stat",
       "category": "files",
       "summary": "查看文件元信息",
-      "names": { "linux": "stat", "macos": "stat", "windows": "Get-Item", "windows_cmd": "dir" },
+      "names": { "linux": "stat", "macos": "stat", "freebsd": "stat", "windows": "Get-Item", "windows_cmd": "dir" },
       "flags": [
-        { "semantic": "文件大小（字节）", "linux": "-c %s", "macos": "-f %z", "windows": "", "windows_cmd": "" },
-        { "semantic": "权限/模式", "linux": "-c %a", "macos": "-f %Lp", "windows": "", "windows_cmd": "" }
+        { "semantic": "文件大小（字节）", "linux": "-c %s", "macos": "-f %z", "freebsd": "-f %z", "windows": "", "windows_cmd": "" },
+        { "semantic": "权限/模式", "linux": "-c %a", "macos": "-f %Lp", "freebsd": "-f %Lp", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "文件大小（字节）", "status": "approximate",
-          "linux": "stat -c %s a.txt", "macos": "stat -f %z a.txt",
+          "linux": "stat -c %s a.txt", "macos": "stat -f %z a.txt", "freebsd": "stat -f %z a.txt",
           "windows": "(Get-Item a.txt).Length", "windows_cmd": "for %I in (a.txt) do @echo %~zI",
           "caveats": ["Linux(GNU) 与 macOS(BSD) 的 stat 参数完全不同，这是最常踩的坑"] },
         { "desc": "权限模式", "status": "approximate",
-          "linux": "stat -c %a a.txt", "macos": "stat -f %Lp a.txt",
+          "linux": "stat -c %a a.txt", "macos": "stat -f %Lp a.txt", "freebsd": "stat -f %Lp a.txt",
           "windows": "(Get-Acl a.txt).AccessToString" },
         { "desc": "修改时间", "status": "approximate",
-          "linux": "stat -c %y a.txt", "macos": "stat -f \"%Sm\" -t \"%F %T\" a.txt",
+          "linux": "stat -c %y a.txt", "macos": "stat -f \"%Sm\" -t \"%F %T\" a.txt", "freebsd": "stat -f \"%Sm\" -t \"%F %T\" a.txt",
           "windows": "(Get-Item a.txt).LastWriteTime" }
       ]
     },
@@ -295,11 +295,11 @@
       "id": "file",
       "category": "files",
       "summary": "识别文件类型",
-      "names": { "linux": "file", "macos": "file", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "file", "macos": "file", "freebsd": "file", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "识别文件类型", "status": "approximate",
-          "linux": "file a.bin", "macos": "file a.bin",
+          "linux": "file a.bin", "macos": "file a.bin", "freebsd": "file a.bin",
           "windows": "(Get-Item a.bin).Extension",
           "caveats": ["Windows 无 file 等价：只能看扩展名或读文件头字节"] }
       ]
@@ -308,13 +308,13 @@
       "id": "readlink",
       "category": "files",
       "summary": "解析链接的真实路径",
-      "names": { "linux": "readlink", "macos": "readlink", "windows": "Resolve-Path", "windows_cmd": "" },
+      "names": { "linux": "readlink", "macos": "readlink", "freebsd": "readlink", "windows": "Resolve-Path", "windows_cmd": "" },
       "flags": [
-        { "semantic": "递归解析到最终目标", "linux": "-f", "macos": "", "windows": "", "windows_cmd": "" }
+        { "semantic": "递归解析到最终目标", "linux": "-f", "macos": "", "freebsd": "", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "解析绝对真实路径", "status": "approximate",
-          "linux": "readlink -f link", "macos": "realpath link",
+          "linux": "readlink -f link", "macos": "realpath link", "freebsd": "realpath link",
           "windows": "(Resolve-Path link).Path -replace '^Microsoft\\.PowerShell\\.Core\\\\FileSystem::',''",
           "caveats": ["macOS 的 BSD readlink 无 -f，用 realpath（10.13+ 自带的 coreutils 替代）"] }
       ]
@@ -323,11 +323,11 @@
       "id": "realpath",
       "category": "files",
       "summary": "输出规范化的绝对路径",
-      "names": { "linux": "realpath", "macos": "realpath", "windows": "Resolve-Path", "windows_cmd": "" },
+      "names": { "linux": "realpath", "macos": "realpath", "freebsd": "realpath", "windows": "Resolve-Path", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "规范化绝对路径", "status": "equivalent",
-          "linux": "realpath ./a/../b", "macos": "realpath ./a/../b",
+          "linux": "realpath ./a/../b", "macos": "realpath ./a/../b", "freebsd": "realpath ./a/../b",
           "windows": "(Resolve-Path .\\a\\..\\b).Path" }
       ]
     },
@@ -335,11 +335,11 @@
       "id": "basename",
       "category": "files",
       "summary": "取路径的文件名部分",
-      "names": { "linux": "basename", "macos": "basename", "windows": "Split-Path", "windows_cmd": "" },
+      "names": { "linux": "basename", "macos": "basename", "freebsd": "basename", "windows": "Split-Path", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "取文件名", "status": "equivalent",
-          "linux": "basename /var/log/syslog", "macos": "basename /var/log/system.log",
+          "linux": "basename /var/log/syslog", "macos": "basename /var/log/system.log", "freebsd": "basename /var/log/messages",
           "windows": "Split-Path C:\\Windows\\Logs\\a.log -Leaf" }
       ]
     },
@@ -347,11 +347,11 @@
       "id": "dirname",
       "category": "files",
       "summary": "取路径的目录部分",
-      "names": { "linux": "dirname", "macos": "dirname", "windows": "Split-Path", "windows_cmd": "" },
+      "names": { "linux": "dirname", "macos": "dirname", "freebsd": "dirname", "windows": "Split-Path", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "取目录", "status": "equivalent",
-          "linux": "dirname /var/log/syslog", "macos": "dirname /var/log/system.log",
+          "linux": "dirname /var/log/syslog", "macos": "dirname /var/log/system.log", "freebsd": "dirname /var/log/messages",
           "windows": "Split-Path C:\\Windows\\Logs\\a.log -Parent" }
       ]
     },
@@ -359,18 +359,18 @@
       "id": "du",
       "category": "files",
       "summary": "统计目录/文件占用空间",
-      "names": { "linux": "du", "macos": "du", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "du", "macos": "du", "freebsd": "du", "windows": "", "windows_cmd": "" },
       "flags": [
-        { "semantic": "汇总只输出总量", "linux": "-s", "macos": "-s", "windows": "", "windows_cmd": "" },
-        { "semantic": "人类可读", "linux": "-h", "macos": "-h", "windows": "", "windows_cmd": "" }
+        { "semantic": "汇总只输出总量", "linux": "-s", "macos": "-s", "freebsd": "-s", "windows": "", "windows_cmd": "" },
+        { "semantic": "人类可读", "linux": "-h", "macos": "-h", "freebsd": "-h", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "当前目录总占用", "status": "approximate",
-          "linux": "du -sh .", "macos": "du -sh .",
+          "linux": "du -sh .", "macos": "du -sh .", "freebsd": "du -sh .",
           "windows": "\"{0:N1} MB\" -f ((Get-ChildItem -Recurse -File | Measure-Object Length -Sum).Sum / 1MB)",
           "caveats": ["Windows 需自行递归求和，慢；大目录可用 Sysinternals du"] },
         { "desc": "子目录各占多少", "status": "approximate",
-          "linux": "du -sh */ | sort -h", "macos": "du -sh */ | sort -h",
+          "linux": "du -sh */ | sort -h", "macos": "du -sh */ | sort -h", "freebsd": "du -sh */ | sort -h",
           "windows": "Get-ChildItem -Directory | ForEach-Object { [PSCustomObject]@{ Name = $_.Name; MB = [math]::Round(((Get-ChildItem $_.FullName -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), 1) } } | Sort-Object MB -Descending" }
       ]
     },
@@ -378,13 +378,13 @@
       "id": "df",
       "category": "files",
       "summary": "查看磁盘剩余空间",
-      "names": { "linux": "df", "macos": "df", "windows": "Get-PSDrive", "windows_cmd": "wmic" },
+      "names": { "linux": "df", "macos": "df", "freebsd": "df", "windows": "Get-PSDrive", "windows_cmd": "wmic" },
       "flags": [
-        { "semantic": "人类可读", "linux": "-h", "macos": "-h", "windows": "", "windows_cmd": "" }
+        { "semantic": "人类可读", "linux": "-h", "macos": "-h", "freebsd": "-h", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "各分区剩余空间", "status": "approximate",
-          "linux": "df -h", "macos": "df -h",
+          "linux": "df -h", "macos": "df -h", "freebsd": "df -h",
           "windows": "Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{n='UsedGB';e={[math]::Round($_.Used/1GB,1)}}, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}",
           "windows_cmd": "wmic logicaldisk get caption,freespace,size" }
       ]
@@ -393,21 +393,21 @@
       "id": "chmod",
       "category": "files",
       "summary": "修改权限",
-      "names": { "linux": "chmod", "macos": "chmod", "windows": "icacls", "windows_cmd": "icacls" },
+      "names": { "linux": "chmod", "macos": "chmod", "freebsd": "chmod", "windows": "icacls", "windows_cmd": "icacls" },
       "flags": [
-        { "semantic": "递归", "linux": "-R", "macos": "-R", "windows": "", "windows_cmd": "" },
-        { "semantic": "加可执行（数字模式）", "linux": "+x", "macos": "+x", "windows": "", "windows_cmd": "" }
+        { "semantic": "递归", "linux": "-R", "macos": "-R", "freebsd": "-R", "windows": "", "windows_cmd": "" },
+        { "semantic": "加可执行（数字模式）", "linux": "+x", "macos": "+x", "freebsd": "+x", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "给脚本加可执行权限", "status": "unsupported",
-          "linux": "chmod +x run.sh", "macos": "chmod +x run.sh",
+          "linux": "chmod +x run.sh", "macos": "chmod +x run.sh", "freebsd": "chmod +x run.sh",
           "windows": null, "windows_cmd": null,
           "caveats": ["Windows 没有 POSIX 可执行位，靠扩展名/文件关联；在 WSL 内执行才需要 chmod"] },
         { "desc": "设为 755", "status": "unsupported",
-          "linux": "chmod 755 run.sh", "macos": "chmod 755 run.sh",
+          "linux": "chmod 755 run.sh", "macos": "chmod 755 run.sh", "freebsd": "chmod 755 run.sh",
           "windows": null, "windows_cmd": null },
         { "desc": "给当前用户完全控制", "status": "approximate",
-          "linux": "chmod u+rwx a.txt", "macos": "chmod u+rwx a.txt",
+          "linux": "chmod u+rwx a.txt", "macos": "chmod u+rwx a.txt", "freebsd": "chmod u+rwx a.txt",
           "windows": "icacls a.txt /grant \"$env:USERNAME:(F)\"", "windows_cmd": "icacls a.txt /grant %USERNAME%:F" }
       ]
     },
@@ -415,14 +415,14 @@
       "id": "chown",
       "category": "files",
       "summary": "修改文件所有者",
-      "names": { "linux": "chown", "macos": "chown", "windows": "icacls", "windows_cmd": "takeown" },
+      "names": { "linux": "chown", "macos": "chown", "freebsd": "chown", "windows": "icacls", "windows_cmd": "takeown" },
       "flags": [
-        { "semantic": "递归", "linux": "-R", "macos": "-R", "windows": "", "windows_cmd": "/r" }
+        { "semantic": "递归", "linux": "-R", "macos": "-R", "freebsd": "-R", "windows": "", "windows_cmd": "/r" }
       ],
       "recipes": [
         { "desc": "改所有者（需 root/管理员）", "status": "approximate",
           "linux": "sudo chown -R www-data:www-data /var/www",
-          "macos": "sudo chown -R _www:_www /Library/WebServer",
+          "macos": "sudo chown -R _www:_www /Library/WebServer", "freebsd": "chown -R www:www /usr/local/www",
           "windows": "icacls C:\\inetpub /setowner \"NT AUTHORITY\\IUSR\" /T",
           "windows_cmd": "takeown /f C:\\inetpub /r",
           "caveats": ["Windows 是 ACL 模型，没有\"所有者+组\"的直接对应；需管理员权限"] }
@@ -432,11 +432,11 @@
       "id": "lsblk",
       "category": "files",
       "summary": "列出块设备",
-      "names": { "linux": "lsblk", "macos": "diskutil", "windows": "Get-Disk", "windows_cmd": "wmic" },
+      "names": { "linux": "lsblk", "macos": "diskutil", "freebsd": "gpart", "windows": "Get-Disk", "windows_cmd": "wmic" },
       "flags": [],
       "recipes": [
         { "desc": "列出磁盘与分区", "status": "approximate",
-          "linux": "lsblk", "macos": "diskutil list",
+          "linux": "lsblk", "macos": "diskutil list", "freebsd": "gpart show",
           "windows": "Get-Disk; Get-Partition", "windows_cmd": "wmic diskdrive get model,size" }
       ]
     },
@@ -444,15 +444,15 @@
       "id": "mount",
       "category": "files",
       "summary": "挂载 / 查看挂载点",
-      "names": { "linux": "mount", "macos": "mount", "windows": "Get-Volume", "windows_cmd": "mountvol" },
+      "names": { "linux": "mount", "macos": "mount", "freebsd": "mount", "windows": "Get-Volume", "windows_cmd": "mountvol" },
       "flags": [],
       "recipes": [
         { "desc": "查看已挂载卷", "status": "approximate",
-          "linux": "mount | column -t", "macos": "mount",
+          "linux": "mount | column -t", "macos": "mount", "freebsd": "mount",
           "windows": "Get-Volume | Format-Table DriveLetter, FileSystemLabel, SizeRemaining",
           "windows_cmd": "mountvol" },
         { "desc": "挂载镜像文件", "status": "approximate",
-          "linux": "sudo mount -o loop disk.img /mnt", "macos": "hdiutil attach disk.dmg",
+          "linux": "sudo mount -o loop disk.img /mnt", "macos": "hdiutil attach disk.dmg", "freebsd": "mdconfig -a -t vnode -f disk.img",
           "windows": "Mount-DiskImage -ImagePath C:\\disk.iso" }
       ]
     },
@@ -460,12 +460,12 @@
       "id": "dd",
       "category": "files",
       "summary": "底层复制 / 写镜像",
-      "names": { "linux": "dd", "macos": "dd", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "dd", "macos": "dd", "freebsd": "dd", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "写 ISO 到 U 盘", "status": "approximate",
           "linux": "sudo dd if=img.iso of=/dev/sdb bs=4M status=progress",
-          "macos": "sudo dd if=img.iso of=/dev/rdisk2 bs=4m",
+          "macos": "sudo dd if=img.iso of=/dev/rdisk2 bs=4m", "freebsd": "dd if=img.iso of=/dev/da0 bs=1m",
           "windows": "dd 无内置等价；用 Rufus 或 WSL 里的 dd，盘符需 /dev/sdX",
           "caveats": ["写错设备名会毁盘，务必先 lsblk/diskutil list 确认"] }
       ]
@@ -474,17 +474,17 @@
       "id": "open",
       "category": "files",
       "summary": "用默认程序打开文件/目录/URL",
-      "names": { "linux": "xdg-open", "macos": "open", "windows": "Start-Process", "windows_cmd": "start" },
+      "names": { "linux": "xdg-open", "macos": "open", "freebsd": "xdg-open", "windows": "Start-Process", "windows_cmd": "start" },
       "flags": [],
       "recipes": [
         { "desc": "打开文件", "status": "equivalent",
-          "linux": "xdg-open a.pdf", "macos": "open a.pdf",
+          "linux": "xdg-open a.pdf", "macos": "open a.pdf", "freebsd": "xdg-open a.pdf",
           "windows": "Start-Process a.pdf", "windows_cmd": "start a.pdf" },
         { "desc": "在文件管理器中显示", "status": "approximate",
-          "linux": "xdg-open .", "macos": "open .",
+          "linux": "xdg-open .", "macos": "open .", "freebsd": "xdg-open .",
           "windows": "Start-Process explorer.exe .", "windows_cmd": "explorer ." },
         { "desc": "用某程序打开", "status": "approximate",
-          "linux": "xdg-open a.txt", "macos": "open -a TextEdit a.txt",
+          "linux": "xdg-open a.txt", "macos": "open -a TextEdit a.txt", "freebsd": "xdg-open a.txt",
           "windows": "Start-Process notepad.exe a.txt", "windows_cmd": "notepad a.txt" }
       ]
     }

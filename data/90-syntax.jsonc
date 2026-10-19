@@ -4,143 +4,143 @@
   "syntax": [
     {
       "id": "pipe", "summary": "管道", "status": "approximate",
-      "linux": "cmd1 | cmd2", "macos": "cmd1 | cmd2",
+      "linux": "cmd1 | cmd2", "macos": "cmd1 | cmd2", "freebsd": "cmd1 | cmd2",
       "windows": "cmd1 | cmd2", "windows_cmd": "cmd1 | cmd2",
       "note": "语法相同，但 PowerShell 管道传的是对象而非文本，grep/awk 式处理要换成 Where-Object / Select-Object"
     },
     {
       "id": "and-and", "summary": "顺序执行（前一个成功才继续）", "status": "approximate",
-      "linux": "cmd1 && cmd2", "macos": "cmd1 && cmd2",
+      "linux": "cmd1 && cmd2", "macos": "cmd1 && cmd2", "freebsd": "cmd1 && cmd2",
       "windows": "cmd1; if ($?) { cmd2 }", "windows_cmd": "cmd1 && cmd2",
       "note": "PowerShell 5.1 不支持 &&，PS7+ 才支持"
     },
     {
       "id": "or-or", "summary": "前一个失败才执行", "status": "approximate",
-      "linux": "cmd1 || cmd2", "macos": "cmd1 || cmd2",
+      "linux": "cmd1 || cmd2", "macos": "cmd1 || cmd2", "freebsd": "cmd1 || cmd2",
       "windows": "cmd1; if (-not $?) { cmd2 }", "windows_cmd": "cmd1 || cmd2",
       "note": "PowerShell 5.1 不支持 ||"
     },
     {
       "id": "semicolon", "summary": "顺序执行（忽略结果）", "status": "equivalent",
-      "linux": "cmd1; cmd2", "macos": "cmd1; cmd2",
+      "linux": "cmd1; cmd2", "macos": "cmd1; cmd2", "freebsd": "cmd1; cmd2",
       "windows": "cmd1; cmd2", "windows_cmd": "cmd1 & cmd2"
     },
     {
       "id": "redirect-out", "summary": "重定向到文件", "status": "equivalent",
-      "linux": "cmd > out.txt", "macos": "cmd > out.txt",
+      "linux": "cmd > out.txt", "macos": "cmd > out.txt", "freebsd": "cmd > out.txt",
       "windows": "cmd > out.txt", "windows_cmd": "cmd > out.txt"
     },
     {
       "id": "redirect-err", "summary": "合并 stderr 到 stdout", "status": "equivalent",
-      "linux": "cmd 2>&1", "macos": "cmd 2>&1",
+      "linux": "cmd 2>&1", "macos": "cmd 2>&1", "freebsd": "cmd 2>&1",
       "windows": "cmd 2>&1", "windows_cmd": "cmd 2>&1"
     },
     {
       "id": "devnull", "summary": "丢弃输出", "status": "equivalent",
-      "linux": "cmd > /dev/null 2>&1", "macos": "cmd > /dev/null 2>&1",
+      "linux": "cmd > /dev/null 2>&1", "macos": "cmd > /dev/null 2>&1", "freebsd": "cmd > /dev/null 2>&1",
       "windows": "cmd > $null 2>&1", "windows_cmd": "cmd > NUL 2>&1"
     },
     {
       "id": "env-var", "summary": "引用环境变量", "status": "equivalent",
-      "linux": "$FOO 或 ${FOO}", "macos": "$FOO 或 ${FOO}",
+      "linux": "$FOO 或 ${FOO}", "macos": "$FOO 或 ${FOO}", "freebsd": "$FOO 或 ${FOO}",
       "windows": "$env:FOO", "windows_cmd": "%FOO%"
     },
     {
       "id": "env-assign", "summary": "设置环境变量", "status": "equivalent",
-      "linux": "export FOO=bar", "macos": "export FOO=bar",
+      "linux": "export FOO=bar", "macos": "export FOO=bar", "freebsd": "export FOO=bar",
       "windows": "$env:FOO = 'bar'", "windows_cmd": "set FOO=bar"
     },
     {
       "id": "cmd-subst", "summary": "命令替换", "status": "equivalent",
-      "linux": "$(cmd) 或 `cmd`", "macos": "$(cmd) 或 `cmd`",
+      "linux": "$(cmd) 或 `cmd`", "macos": "$(cmd) 或 `cmd`", "freebsd": "$(cmd) 或 `cmd`",
       "windows": "$(cmd)", "windows_cmd": "for /f %i in ('cmd') do ...",
       "note": "PowerShell 用 $( ) ，反引号在 PS 里是转义符不是命令替换"
     },
     {
       "id": "var-assign", "summary": "局部变量赋值", "status": "equivalent",
-      "linux": "NAME=value", "macos": "NAME=value",
+      "linux": "NAME=value", "macos": "NAME=value", "freebsd": "NAME=value",
       "windows": "$Name = 'value'", "windows_cmd": "set NAME=value"
     },
     {
       "id": "exit-code", "summary": "上一条命令的退出码", "status": "equivalent",
-      "linux": "$?", "macos": "$?",
+      "linux": "$?", "macos": "$?", "freebsd": "$?",
       "windows": "$LASTEXITCODE（外部程序）/ $?（cmdlet 布尔）", "windows_cmd": "%ERRORLEVEL%"
     },
     {
       "id": "glob", "summary": "通配符展开", "status": "approximate",
-      "linux": "*.log（shell 展开）", "macos": "*.log（shell 展开）",
+      "linux": "*.log（shell 展开）", "macos": "*.log（shell 展开）", "freebsd": "*.log（shell 展开）",
       "windows": "*.log（多数 cmdlet 内部处理，非 shell 展开）", "windows_cmd": "*.log（程序自己处理）",
       "note": "POSIX 由 shell 展开后传给程序；Windows 多数情况由程序自己解释通配符"
     },
     {
       "id": "quoting", "summary": "引号与转义", "status": "approximate",
-      "linux": "'literal' \"$expanded\" 反斜杠转义", "macos": "'literal' \"$expanded\" 反斜杠转义",
+      "linux": "'literal' \"$expanded\" 反斜杠转义", "macos": "'literal' \"$expanded\" 反斜杠转义", "freebsd": "'literal' \"$expanded\" 反斜杠转义",
       "windows": "'literal' \"$expanded\" 反引号 ` 转义", "windows_cmd": "无单引号；双引号内 % 仍展开",
       "note": "PowerShell 单引号内不解析变量；反斜杠不是转义符，反引号才是"
     },
     {
       "id": "background", "summary": "后台执行", "status": "approximate",
-      "linux": "cmd &", "macos": "cmd &",
+      "linux": "cmd &", "macos": "cmd &", "freebsd": "cmd &",
       "windows": "Start-Job { cmd } 或 Start-Process", "windows_cmd": "start /b cmd"
     },
     {
       "id": "heredoc", "summary": "多行输入", "status": "unsupported",
-      "linux": "cmd <<EOF ... EOF", "macos": "cmd <<EOF ... EOF",
+      "linux": "cmd <<EOF ... EOF", "macos": "cmd <<EOF ... EOF", "freebsd": "cmd <<EOF ... EOF",
       "windows": null, "windows_cmd": null,
       "note": "PowerShell 无 heredoc；用 here-string @\" ... \"@ 作为输入"
     },
     {
       "id": "subshell", "summary": "子 shell / 命令组", "status": "approximate",
-      "linux": "( cmd1; cmd2 )", "macos": "( cmd1; cmd2 )",
+      "linux": "( cmd1; cmd2 )", "macos": "( cmd1; cmd2 )", "freebsd": "( cmd1; cmd2 )",
       "windows": "& { cmd1; cmd2 }", "windows_cmd": "cmd /c \"cmd1 & cmd2\""
     },
     {
       "id": "brace-expand", "summary": "大括号扩展", "status": "unsupported",
-      "linux": "cp a.{txt,bak}", "macos": "cp a.{txt,bak}（zsh 支持）",
+      "linux": "cp a.{txt,bak}", "macos": "cp a.{txt,bak}（zsh 支持）", "freebsd": "cp a.txt a.txt.bak",
       "windows": null, "windows_cmd": null,
       "note": "PowerShell 无大括号扩展；bash 支持，sh/dash 不支持"
     },
     {
       "id": "tilde", "summary": "家目录缩写 ~", "status": "equivalent",
-      "linux": "~/app", "macos": "~/app",
+      "linux": "~/app", "macos": "~/app", "freebsd": "~/app",
       "windows": "~\\app（PS 支持）或 $env:USERPROFILE\\app", "windows_cmd": "%USERPROFILE%\\app"
     },
     {
       "id": "path-sep", "summary": "路径分隔符", "status": "approximate",
-      "linux": "/", "macos": "/",
+      "linux": "/", "macos": "/", "freebsd": "/",
       "windows": "\\（PS 也接受 /）", "windows_cmd": "\\"
     },
     {
       "id": "case-sensitivity", "summary": "大小写敏感", "status": "approximate",
-      "linux": "文件名敏感、命令名敏感", "macos": "文件名默认不敏感（APFS）、命令名敏感",
+      "linux": "文件名敏感、命令名敏感", "macos": "文件名默认不敏感（APFS）、命令名敏感", "freebsd": "UFS/ZFS 默认大小写敏感、命令名敏感",
       "windows": "文件名不敏感、命令名不敏感", "windows_cmd": "均不敏感",
       "note": "跨平台脚本里文件名一律按敏感处理最安全"
     },
     {
       "id": "line-ending", "summary": "行尾符", "status": "unsupported",
-      "linux": "LF", "macos": "LF",
+      "linux": "LF", "macos": "LF", "freebsd": "LF",
       "windows": "CRLF", "windows_cmd": "CRLF",
       "note": "CRLF 的 .sh 在 Linux 上会报 bad interpreter: /bin/bash^M，用 dos2unix 或 sed -i 's/\\r//' 修"
     },
     {
       "id": "encoding", "summary": "默认编码", "status": "approximate",
-      "linux": "UTF-8", "macos": "UTF-8",
+      "linux": "UTF-8", "macos": "UTF-8", "freebsd": "UTF-8",
       "windows": "PS 5.1 默认 ANSI(GBK)/ 输出 UTF-16；PS7 默认 UTF-8", "windows_cmd": "OEM 代码页（中文 936）",
       "note": "Windows 上读写中文必设 [Console]::OutputEncoding = [Text.UTF8Encoding]::new() 或 chcp 65001"
     },
     {
       "id": "sudo", "summary": "提权执行", "status": "approximate",
-      "linux": "sudo cmd", "macos": "sudo cmd",
+      "linux": "sudo cmd", "macos": "sudo cmd", "freebsd": "su -  # 切到 root 后再执行（FreeBSD base 无 sudo/doas）",
       "windows": "Start-Process -Verb RunAs", "windows_cmd": "runas /user:Administrator cmd",
       "note": "Windows 无 sudo（Win11 24H2 起有 sudo 但默认关闭）；多数操作需管理员终端"
     }
   ],
   "pitfalls": [
     {
-      "id": "bsd-sed-inplace", "platforms": ["macos"],
+      "id": "bsd-sed-inplace", "platforms": ["macos", "freebsd"],
       "title": "BSD sed 的 -i 必须带备份后缀",
-      "detail": "macOS 的 sed 来自 BSD，`sed -i 's/a/b/' f` 会把 's/a/b/' 当成备份后缀，报错或产生垃圾文件。",
-      "fix": "写成 sed -i '' 's/a/b/' f（空串=不备份）；或 brew install gnu-sed 后用 gsed。"
+      "detail": "macOS 与 FreeBSD 的 sed 都是 BSD 版，`sed -i 's/a/b/' f` 会把 's/a/b/' 当成备份后缀，报错或产生垃圾文件；`sed -i '.bak'` 则留下 f.bak。",
+      "fix": "写成 sed -i '' 's/a/b/' f（空串=不备份）；或 macOS 用 brew install gnu-sed / FreeBSD 用 pkg install gsed 后调用 gsed。"
     },
     {
       "id": "macos-missing-tools", "platforms": ["macos"],
@@ -155,22 +155,22 @@
       "fix": "脚本用 #!/usr/bin/env bash 并在需要时 brew install bash；或统一按 POSIX sh 写。"
     },
     {
-      "id": "gnu-grep-p", "platforms": ["macos"],
+      "id": "gnu-grep-p", "platforms": ["macos", "freebsd"],
       "title": "BSD grep 不支持 -P（PCRE）",
-      "detail": "grep -P '\\d+' 在 macOS 报错。BSD grep 也不支持 --include 的某些写法。",
-      "fix": "brew install grep 后用 ggrep -P；或改用 grep -E 的 POSIX 正则。"
+      "detail": "grep -P '\\d+' 在 macOS 与 FreeBSD 上都是 invalid option。BSD grep 也不支持 --include 的某些写法。",
+      "fix": "macOS brew install grep / FreeBSD pkg install gnugrep 后用 ggrep -P；或改用 grep -E 的 POSIX 正则（[0-9]+）。"
     },
     {
-      "id": "stat-dialect", "platforms": ["macos", "linux"],
+      "id": "stat-dialect", "platforms": ["macos", "freebsd", "linux"],
       "title": "stat 参数两套方言",
-      "detail": "Linux: stat -c '%s' f；macOS: stat -f '%z' f。互相照抄必然失败。",
+      "detail": "Linux: stat -c '%s' f；macOS 与 FreeBSD（BSD 版 stat）: stat -f '%z' f。互相照抄必然失败。",
       "fix": "按平台分支写；跨平台脚本用 python3 -c 'import os,sys;print(os.path.getsize(sys.argv[1]))'。"
     },
     {
-      "id": "date-d", "platforms": ["macos"],
+      "id": "date-d", "platforms": ["macos", "freebsd"],
       "title": "BSD date 没有 -d",
-      "detail": "date -d '2026-01-01' +%s 在 macOS 无效。",
-      "fix": "macOS 用 date -j -f '%Y-%m-%d' '2026-01-01' +%s。"
+      "detail": "date -d '2026-01-01' +%s 在 macOS 与 FreeBSD 都无效（BSD date 没有 -d）。",
+      "fix": "解析用 date -j -f '%Y-%m-%d' '2026-01-01' +%s；epoch 反解用 date -r 1700000000；偏移用 date -v-1d。"
     },
     {
       "id": "readlink-f", "platforms": ["macos"],
@@ -221,7 +221,7 @@
       "fix": "生成文件名前做白名单过滤。"
     },
     {
-      "id": "rm-no-trash", "platforms": ["windows", "linux"],
+      "id": "rm-no-trash", "platforms": ["windows", "linux", "macos", "freebsd"],
       "title": "命令行删除不进回收站",
       "detail": "rm -rf / Remove-Item -Recurse -Force 都是永久删除，不可恢复。",
       "fix": "危险操作前先 dry-run 打印命中列表；或 Windows 用 Recycle 模块，Linux 用 trash-cli。"
@@ -233,7 +233,7 @@
       "fix": "开启开发者模式，或以管理员运行；顺序是 mklink 链接 目标。"
     },
     {
-      "id": "crlf-script", "platforms": ["linux", "macos", "windows"],
+      "id": "crlf-script", "platforms": ["linux", "macos", "freebsd", "windows"],
       "title": "CRLF 破坏 shell 脚本",
       "detail": "Windows 编辑过的 .sh 在 Linux 报 /bin/bash^M: bad interpreter。",
       "fix": "git config core.autocrlf input；已有文件用 dos2unix 或 sed -i 's/\\r$//'。"
@@ -245,10 +245,10 @@
       "fix": "macOS 上写 ~/.zshrc；两者都要兼容就抽到 ~/.profile 并在两个 rc 里 source。"
     },
     {
-      "id": "service-models", "platforms": ["linux", "macos", "windows"],
-      "title": "三套完全不同的服务模型",
-      "detail": "Linux=systemd unit；macOS=launchd plist（brew services 是包装）；Windows=SCM 服务。没有通用命令。",
-      "fix": "分别用 systemctl / launchctl(bootstrap) / New-Service+sc.exe；跨平台产品自带安装器时优先用它注册服务。"
+      "id": "service-models", "platforms": ["linux", "macos", "freebsd", "windows"],
+      "title": "四套完全不同的服务模型",
+      "detail": "Linux=systemd unit；macOS=launchd plist（brew services 是包装）；FreeBSD=rc.d 脚本 + /etc/rc.conf 开关（service X start / sysrc X_enable=YES）；Windows=SCM 服务。没有通用命令。",
+      "fix": "分别用 systemctl / launchctl(bootstrap) / service+sysrc / New-Service+sc.exe；跨平台产品自带安装器时优先用它注册服务。"
     },
     {
       "id": "wsl-paths", "platforms": ["windows"],
@@ -257,7 +257,7 @@
       "fix": "用 wslpath -a/-u 转换；ferry translate 加 --path-style wsl|msys 控制反向映射写法。"
     },
     {
-      "id": "hidden-files", "platforms": ["windows", "linux"],
+      "id": "hidden-files", "platforms": ["windows", "linux", "macos", "freebsd"],
       "title": "隐藏文件机制不同",
       "detail": "POSIX 靠文件名前缀点号；Windows 靠文件属性（Hidden），ls -a 与 Get-ChildItem -Force 不等价。",
       "fix": "Windows 上还得看 attributes；跨平台遍历时两边都显式包含。"
@@ -267,6 +267,36 @@
       "title": "文件系统默认大小写不敏感",
       "detail": "macOS(APFS 默认)/Windows 上 Foo.txt 与 foo.txt 是同一个文件，Linux 上是两个。",
       "fix": "发布脚本注意撞名；CI 在 Linux 上跑能提前暴露问题。"
+    },
+    {
+      "id": "freebsd-minimal-base", "platforms": ["freebsd"],
+      "title": "FreeBSD base 极简：shell 工具齐全，应用工具靠 pkg",
+      "detail": "base 自带 fetch/nc/tar/bsdtar/unzip/zstd/sha256/sha512/md5/openssl/realpath/nproc/timeout/which/sed/awk/grep/find/xargs/install；但没有 curl、wget、git、python3、node、jq、vim、tmux、tree、lsof、rsync、zip、7z、shuf、sudo、doas。命令找不到时先 pkg install，不要以为系统坏了。",
+      "fix": "pkg install -y curl git python3 node22 jq vim tmux tree lsof rsync zip 7-Zip；下载单文件可以直接用 base 的 fetch（fetch -r 支持续传）。"
+    },
+    {
+      "id": "freebsd-sh-not-bash", "platforms": ["freebsd"],
+      "title": "FreeBSD 默认 /bin/sh，不是 bash",
+      "detail": "/bin/sh 是 FreeBSD sh（Almquist 派生）：没有 bash 的数组、[[ ]]、mapfile，也不做花括号扩展——echo a{1,2} 原样输出 a{1,2}。base 里根本没有 bash，#!/bin/bash 的脚本会 bad interpreter。",
+      "fix": "脚本写 #!/bin/sh 并只用 POSIX 语法（多个文件用 cp a.txt a.txt.bak 而不是 cp a.{txt,bak}）；确实需要 bash 就 pkg install bash 并显式写 #!/usr/local/bin/bash。"
+    },
+    {
+      "id": "freebsd-pkg-bootstrap", "platforms": ["freebsd"],
+      "title": "新装的 FreeBSD 上 pkg 还没初始化",
+      "detail": "刚装好的系统执行 pkg 会报 'The package management tool is not yet installed on your system'，需要先 bootstrap（要有 root）。",
+      "fix": "以 root 执行 pkg bootstrap（非交互：ASSUME_ALWAYS_YES=yes pkg bootstrap），之后 pkg update 再装包。"
+    },
+    {
+      "id": "freebsd-no-sudo-su-c", "platforms": ["freebsd"],
+      "title": "FreeBSD base 没有 sudo，且 su -c 不是执行命令",
+      "detail": "base 既没有 sudo 也没有 doas（命令直接 127）。更坑的是从 Linux 照搬的 su -c 'cmd' 在 FreeBSD 上 -c 表示 login class，不是命令，会静默变成别的东西。",
+      "fix": "提权用 su -（交互切到 root）或 pkg install sudo 后把用户加进 wheel 组（pw groupmod wheel -m 用户名）；也可以 pkg install doas 并写 /usr/local/etc/doas.conf。脚本里需要非交互 root 时用 sudo -n 或直接以 root 运行。"
+    },
+    {
+      "id": "freebsd-third-party-layout", "platforms": ["freebsd"],
+      "title": "FreeBSD 的第三方软件装在 /usr/local",
+      "detail": "pkg 装的程序在 /usr/local/bin|sbin，配置在 /usr/local/etc，rc.d 服务脚本在 /usr/local/etc/rc.d，网页根目录在 /usr/local/www；base 的日志仍是 /var/log/messages、/var/log/auth.log。PATH 默认含 /usr/local/bin，但 cron 环境可能不含。",
+      "fix": "写脚本用 #!/usr/local/bin/bash 这类绝对路径或显式 export PATH=/usr/local/bin:/usr/bin:/bin；服务用 service X start 前先 sysrc X_enable=YES 才会开机自启。"
     }
   ]
 }

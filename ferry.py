@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""ferry — 摆渡：Linux / macOS / Windows 命令互译。
+"""ferry — 摆渡：Linux / macOS / FreeBSD / Windows 命令互译。
 
 设计原则
 --------
@@ -9,13 +9,14 @@
 2. 绝不静默降级：语义不等价必须标 approximate / unsupported 并给出 caveat，
    让调用方（AI agent）能靠 status + 退出码做分支。
 3. Agent 优先：--json 稳定契约，退出码 0/2/3/4 表达等价级别。
-4. 无第三方依赖：仅标准库，Linux/macOS 开箱即用。
+4. 无第三方依赖：仅标准库，Linux/macOS/FreeBSD 开箱即用。
 
 用法速查
 --------
     ferry translate "ls -la" --to windows
     ferry translate "dir /w" --to linux --from windows
     ferry translate "sed -i 's/a/b/' f" --to macos --json
+    ferry translate "dpkg -i app.deb" --to freebsd
     ferry lookup rm
     ferry prompt-export --to windows --max-chars 3000
     ferry syntax --to windows
@@ -42,11 +43,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 SCHEMA = 1
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
-PLATFORMS = ("linux", "macos", "windows")
-PLATFORM_LABEL = {"linux": "Linux", "macos": "macOS", "windows": "Windows"}
-DEFAULT_SHELL = {"linux": "bash", "macos": "zsh", "windows": "powershell"}
+PLATFORMS = ("linux", "macos", "freebsd", "windows")
+PLATFORM_LABEL = {"linux": "Linux", "macos": "macOS", "freebsd": "FreeBSD",
+                  "windows": "Windows"}
+DEFAULT_SHELL = {"linux": "bash", "macos": "zsh", "freebsd": "sh",
+                 "windows": "powershell"}
+# POSIX 家族：参数表键名与组合短参数展开规则相同（BSD 与 GNU 的差异靠数据表达）
+POSIX_PLATFORMS = ("linux", "macos", "freebsd")
 SHELL_FAMILY = {
     "bash": "posix", "zsh": "posix", "sh": "posix", "dash": "posix",
     "powershell": "powershell", "pwsh": "powershell", "cmd": "cmd",
@@ -89,8 +94,10 @@ def normalize_platform(p: str | None) -> str | None:
     p = p.strip().lower()
     if p in ("linux", "gnu", "ubuntu", "debian", "fedora", "arch", "centos", "rhel"):
         return "linux"
-    if p in ("macos", "mac", "osx", "darwin", "apple", "bsd"):
+    if p in ("macos", "mac", "osx", "darwin", "apple"):
         return "macos"
+    if p in ("freebsd", "fbsd", "bsd", "free-bsd", "freebsd13", "freebsd14", "freebsd15"):
+        return "freebsd"
     if p in ("windows", "win", "win32", "win64", "nt", "cmd", "powershell", "pwsh"):
         return "windows"
     return None
@@ -101,6 +108,8 @@ def current_platform() -> str:
         return "windows"
     if sys.platform == "darwin":
         return "macos"
+    if sys.platform.startswith("freebsd"):
+        return "freebsd"
     return "linux"
 
 
@@ -673,6 +682,33 @@ def _slot_match(recipe_tok: str, input_tok: str) -> bool:
     return True
 
 
+def _split_prefix(tokens: list[str]) -> tuple[list[str], list[str]]:
+    """剥离 sudo/doas/env VAR=x 这类前缀，返回 (前缀, 主体)。"""
+    i = 0
+    while i < len(tokens) and (tokens[i] in PREFIXES
+                              or re.fullmatch(r"[A-Za-z_]\w*=\S*", tokens[i])):
+        i += 1
+    return tokens[:i], tokens[i:]
+
+
+def _verb_conflict(rt: list[str], want: list[str]) -> bool:
+    """recipe 与输入的"动词位"是否互斥。
+
+    剥掉 sudo/doas 后第 2 个 token 若都是纯单词且不同（install vs update），
+    说明这是两条不同的子命令，不能靠示例值槽位硬凑——否则
+    `apt install nginx` 会被 3 token 的 `sudo apt update` 吃掉，输出 `pkg nginx`。
+    """
+    _, rc = _split_prefix(rt)
+    _, wc = _split_prefix(want)
+    if len(rc) < 2 or len(wc) < 2:
+        return False
+    a, b = rc[1], wc[1]
+    if a == b:
+        return False
+    pure = re.compile(r"[a-z][a-z0-9-]*")
+    return bool(pure.fullmatch(a) and pure.fullmatch(b))
+
+
 def recipe_match(entry: Entry, src_key: str, tokens: list[str]) -> dict | None:
     """精确匹配 recipe（按 token 归一化，忽略引号与尾部斜杠差异）。"""
     want = _norm_tokens(tokens)
@@ -692,6 +728,8 @@ def recipe_match(entry: Entry, src_key: str, tokens: list[str]) -> dict | None:
             continue
         rt = _norm_tokens(tokenize(s))
         if len(rt) != len(want):
+            continue
+        if _verb_conflict(rt, want):
             continue
         if all(_slot_match(a, b) for a, b in zip(rt, want)):
             return r
@@ -856,12 +894,17 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
     unknown = False
     dropped: set[str] = set()
 
-    table: dict[str, dict] = {}
+    # 数据里的参数常写成 "-c %s" / "-n 100"（带示例值）：按首 token 建索引，
+    # 记下后面有几个示例值，输入里才认得出这个参数吃了几个值
+    table: dict[str, tuple[dict, int, list[str]]] = {}
     for f in entry.flags:
         s = f.get(src_key)
         if not s:
             continue
-        table[s] = f
+        parts = s.split()
+        if not parts:
+            continue
+        table[parts[0]] = (f, len(parts) - 1, parts[1:])
 
     def target_tokens(f: dict) -> list[str]:
         t = f.get(tgt_key)
@@ -869,28 +912,56 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
             return []
         return t.split() if t else []
 
-    for a in args:
-        if a in table:
-            tts = target_tokens(table[a])
+    skip: set[int] = set()
+    for idx, a in enumerate(args):
+        if idx in skip:
+            continue
+        hit = table.get(a)
+        if hit:
+            f, extra, ex = hit
+            tts = target_tokens(f)
+            if extra == 0:
+                if not tts:
+                    caveats.append(f"参数 {a} 在目标平台无直接对应，已丢弃（{f.get('semantic','')}）")
+                out.extend(tts)
+                continue
+            user_vals = args[idx + 1:idx + 1 + extra]
+            same_as_example = len(user_vals) == extra and user_vals == ex
+            # 带示例值的参数（多是格式符 %s / %Lp）：只有输入与示例完全一致才整体替换，
+            # 否则会把用户的真实值（行数、路径）错误地换成示例值
+            if same_as_example:
+                if not tts:
+                    caveats.append(f"参数 {a} {' '.join(ex)} 在目标平台无直接对应，已丢弃（{f.get('semantic','')}）")
+                out.extend(tts)
+                skip.update(range(idx + 1, idx + 1 + extra))
+                continue
             if not tts:
-                caveats.append(f"参数 {a} 在目标平台无直接对应，已丢弃（{table[a].get('semantic','')}）")
-            out.extend(tts)
+                # 目标平台没这个参数、值又是用户自己的：整段吞掉会静默改语义，保留并提示
+                caveats.append(f"参数 {a} {' '.join(user_vals)} 在目标平台无直接对应，原样保留，执行前务必核对（{f.get('semantic','')}）")
+                out.append(a)
+                out.extend(user_vals)
+                skip.update(range(idx + 1, idx + 1 + extra))
+                continue
+            # 目标参数也吃值：保留用户的值，只换开关部分
+            out.extend(tts[:max(1, len(tts) - extra)])
+            out.extend(user_vals)
+            skip.update(range(idx + 1, idx + 1 + extra))
             continue
         key, val = split_flag_value(a)
         if key != a and key in table:
-            tts = target_tokens(table[key])
+            tts = target_tokens(table[key][0])
             if tts:
                 out.extend(tts)
                 if val is not None:
                     out.append(val)
             continue
         # POSIX 组合短参数 -la
-        if src_key in ("linux", "macos") and re.fullmatch(r"-[A-Za-z]{2,}", a):
+        if src_key in POSIX_PLATFORMS and re.fullmatch(r"-[A-Za-z]{2,}", a):
             expanded, ok, lost = [], True, []
             for ch in a[1:]:
                 single = "-" + ch
                 if single in table:
-                    tts = target_tokens(table[single])
+                    tts = target_tokens(table[single][0])
                     if tts:
                         expanded.extend(tts)
                     else:
@@ -917,7 +988,7 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
             out.append(a)
             continue
         if (re.fullmatch(r"--?[A-Za-z][A-Za-z0-9_-]*(=.*)?", a) and tgt == "windows"
-                and src_key in ("linux", "macos")):
+                and src_key in POSIX_PLATFORMS):
             dropped.add(a)
             caveats.append(f"参数 {a} 在 {shell_tgt} 无对应，已丢弃 —— 请核对结果是否符合原意")
             continue
@@ -938,8 +1009,10 @@ PLATFORM_WORDS = {
     "windows": re.compile(r"PowerShell|PS ?5\.1|\bcmd\.exe\b|Select-String|Get-[A-Z]\w+|"
                           r"Remove-Item|Copy-Item|Start-Process|注册表|回收站|Windows|Win32|"
                           r"icacls|winget|\bNUL\b|tasklist|findstr"),
-    "macos": re.compile(r"macOS|OS X|BSD|launchctl|Homebrew|brew |plutil|shasum|diskutil|"
-                        r"-j -f|ditto|\bpbpaste\b"),
+    "macos": re.compile(r"macOS|OS X|launchctl|Homebrew|brew |plutil|shasum|diskutil|"
+                        r"-j -f|ditto|\bpbpaste\b|/Applications|~/Library|/Volumes"),
+    "freebsd": re.compile(r"FreeBSD|BSD|/usr/home|rc\.conf|sysrc|\bpkg (install|delete|search|info|upgrade)\b|"
+                          r"ports|\bjail\b|pf\.conf|sockstat|\bfetch\b|\btruss\b|/usr/local/etc|gpart"),
     "linux": re.compile(r"Linux|GNU|systemd|systemctl|\bdnf\b|\bapt\b|/proc|/etc/|\byum\b|"
                         r"netstat|\biproute\b"),
 }
@@ -1482,7 +1555,7 @@ def cmd_syntax(args, kb: KB) -> int:
         status = s.get("status", "approximate")
         label, col = STATUS_BADGE.get(status, ("?", "dim"))
         print(f"{color(s.get('summary',''), 'bold')}  {color('[' + label + ']', col)}")
-        print(f"  posix  {s.get('linux') or s.get('macos') or '—'}")
+        print(f"  posix  {s.get('linux') or s.get('macos') or s.get('freebsd') or '—'}")
         print(f"  target {s.get(key) or '—'}")
         if s.get("note"):
             print(color(f"  · {s['note']}", "dim"))
@@ -1515,7 +1588,7 @@ def cmd_doctor(args, kb: KB) -> int:
     for e in kb.entries:
         if not e.summary:
             warns.append(f"{e.id}: 缺少 summary")
-        if not any(e.names.get(p) for p in ("linux", "macos", "windows", "windows_cmd")):
+        if not any(e.names.get(p) for p in ("linux", "macos", "freebsd", "windows", "windows_cmd")):
             problems.append(f"{e.id}: 没有任何平台命令名")
         for r in e.recipes:
             st = r.get("status", "equivalent")
@@ -1523,7 +1596,7 @@ def cmd_doctor(args, kb: KB) -> int:
                 problems.append(f"{e.id}: recipe 状态非法 {st}")
             if not r.get("desc"):
                 warns.append(f"{e.id}: recipe 缺少 desc")
-            if not any(r.get(k) for k in ("linux", "macos", "windows", "windows_cmd")):
+            if not any(r.get(k) for k in ("linux", "macos", "freebsd", "windows", "windows_cmd")):
                 problems.append(f"{e.id}: 空 recipe")
         for f in e.flags:
             if not f.get("semantic"):
@@ -1752,9 +1825,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     t = sub.add_parser("translate", aliases=["t"], help="翻译命令")
     t.add_argument("command", nargs="*", help="要翻译的命令（可带管道/&&/;）")
-    t.add_argument("--to", required=True, help="目标平台：linux|macos|windows")
+    t.add_argument("--to", required=True, help="目标平台：linux|macos|freebsd|windows")
     t.add_argument("--from", dest="from_os", help="源平台（缺省自动推断）")
-    t.add_argument("--shell", help="目标 shell：bash|zsh|powershell|cmd")
+    t.add_argument("--shell", help="目标 shell：bash|zsh|sh|powershell|cmd")
     t.add_argument("--json", action="store_true", help="JSON 输出（agent 用）")
     t.add_argument("--explain", action="store_true", help="显示判定过程")
     t.add_argument("--stdin", action="store_true", help="从 stdin 逐行读取命令")
@@ -1763,7 +1836,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Windows 盘符在 POSIX 下的写法（默认 wsl: /mnt/c）")
     t.set_defaults(func=cmd_translate)
 
-    lk = sub.add_parser("lookup", help="查命令在三平台的对应写法")
+    lk = sub.add_parser("lookup", help="查命令在各平台的对应写法")
     lk.add_argument("name")
     lk.add_argument("--json", action="store_true")
     lk.set_defaults(func=cmd_lookup)
@@ -1892,7 +1965,7 @@ def cmd_hosts(args, kb: KB) -> int:
     hosts = load_hosts()
     if args.action == "add":
         if not args.alias or not args.platform:
-            print("用法：ferry hosts add <别名> <linux|macos|windows> [--user U] [--port 22] [--note 备注]",
+            print("用法：ferry hosts add <别名> <linux|macos|freebsd|windows> [--user U] [--port 22] [--note 备注]",
                   file=sys.stderr)
             return 4
         hosts[args.alias] = {
@@ -1921,7 +1994,7 @@ def cmd_hosts(args, kb: KB) -> int:
         return 0
     if not hosts:
         print(f"还没有登记远程主机。配置文件：{HOSTS_PATH}")
-        print("加一台：ferry hosts add macbook macos --user dev")
+        print("加一台：ferry hosts add fbsd freebsd --user dev")
         return 0
     print(f"远程主机（{HOSTS_PATH}）")
     print()

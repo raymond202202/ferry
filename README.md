@@ -2,7 +2,7 @@
 
 [![test](https://github.com/raymond202202/ferry/actions/workflows/test.yml/badge.svg)](https://github.com/raymond202202/ferry/actions/workflows/test.yml)
 
-> 把命令从 Linux 摆渡到 macOS / Windows，再摆渡回来。离线、确定性、给 AI agent 用。
+> 把命令从 Linux 摆渡到 macOS / FreeBSD / Windows，再摆渡回来。离线、确定性、给 AI agent 用。
 
 ferry 不是"自然语言转命令"，也不是简单的命令名词典。它解决的是**同一条命令在不同操作系统上到底能不能跑、跑起来语义一样不一样**：
 
@@ -33,6 +33,7 @@ $ ferry translate "sed -i 's/a/b/' f.txt" --to macos
 | 转换方向 | 真实难点 | ferry 的处理 |
 |---|---|---|
 | Linux ↔ macOS | 命令名 95% 相同，坑全在 **BSD/GNU 参数差异**（`sed -i`、`stat -c/-f`、`date -d`、`sort -V`、`grep -P`、缺 `timeout/nproc/free`） | 参数级映射 + recipe + 坑位表 |
+| Linux ↔ FreeBSD | 和 macOS 同属 BSD 血缘但**不完全一样**：FreeBSD 15 的 `sort -V`/`readlink -f`/`ls --color`/`nproc`/`timeout` 都有，`sed -i` 仍要后缀、`stat` 用 `-f`、`date` 用 `-j/-r/-v`；base 系统无 `sudo`/`bash`/`curl`/`git`/`python3`/`lsof`，包管理是 `pkg`、服务是 `sysrc`+`service`、网络是 `ifconfig`+`sockstat`、磁盘是 `gpart` | 独立的 `freebsd` 平台键 + 54 条真机 drill（FreeBSD 15.0 VM 实测通过） |
 | Linux/macOS ↔ Windows | 不只是换命令，而是换**数据模型**：文本流管道 → 对象管道，POSIX 权限位 → ACL，systemd → SCM | 显式降级为 `approximate` 并给 caveat；能证明无解的直接 `unsupported` |
 | 任意方向 | **绝不静默降级**：错误的"看起来对"的命令比报错危险得多（`rm -rf` / `chmod` / `find -delete`） | 三态 status + 退出码，让调用方能分支 |
 
@@ -43,10 +44,10 @@ $ ferry translate "sed -i 's/a/b/' f.txt" --to macos
 ```bash
 cd ~/.projects/ferry && ./install.sh
 # 装到 ~/.ferry/install，链接到 ~/.local/bin/ferry
-# 若 ~/.local/bin 不在 PATH：./install.sh --add-path（幂等，往 ~/.bashrc 写一个可删的块）
+# 若 ~/.local/bin 不在 PATH：./install.sh --add-path（幂等，Linux 写 ~/.bashrc，FreeBSD 写 ~/.profile）
 ```
 
-零依赖：只要 `python3`（3.9+）。Linux / macOS 开箱即用；Windows 用 `py` 跑同一份代码。
+零依赖：只要 `python3`（3.9+）。Linux / macOS / FreeBSD 开箱即用（FreeBSD 先 `pkg install python3`）；Windows 用 `py` 跑同一份代码。
 
 ## 用法
 
@@ -78,6 +79,7 @@ ferry stats
 # 跨平台断言验证（在目标机上自证，而不是信我）
 ferry drills --to linux --run
 ferry drills --to macos --emit sh > verify-mac.sh     # 拷到 Mac 上跑
+ferry drills --to freebsd --emit sh > verify-fbsd.sh  # 拷到 FreeBSD 上跑
 ferry drills --to windows --emit ps1 > verify-win.ps1 # 拷到 Windows 上跑
 ```
 
@@ -188,6 +190,7 @@ ferry prompt-export --to windows --max-chars 3000 > /tmp/win-cheatsheet.md
 - ✅ **Linux 侧**：`ferry drills --to linux --run` 5/5；命令名本机可解析（`doctor --live`）。
 - ✅ **macOS 侧**：GitHub Actions 的 macOS runner 上逐条跑过（`drills --to macos --run`）——16 条严格断言全绿（`sed -i` 备份后缀、`stat -f`/`-c`、`date -j -f`/`-d`、`timeout`/`nproc` 缺失、`grep -P`、`cp -a`、`base64 -D`、`sort -h`、`du -h`、`find -exec +`、`launchctl` 等），3 条环境相关项（`sha256sum`/`sort -V`/coreutils 遮蔽）以 INFO 记录实际结果。
 - ✅ **引擎**：45 项单元测试（词法、recipe、参数映射、路径/引号/变量、退出码、JSON 契约、ssh 主机表）。
+- ✅ **FreeBSD 侧**：FreeBSD 15.0-RELEASE VM（QEMU/KVM）上 `ferry drills --to freebsd --run`：53 通过 / 0 失败（1 条 `expect: any` 只记录）。翻译结果**实跑**验证：`date -r 1700000000 +%F` → `2023-11-14`、`stat -f %z` → `4`、`sed -i ''` 就地生效、`service -l` 正常；flare 本体在同一 VM 上构建安装成功（`flare --version` → 0.6.153）。复跑步骤见 [`docs/freebsd-vm-verification.md`](docs/freebsd-vm-verification.md)。
 - ⏳ **Windows 侧**：33 条断言里 14 条是 Windows 的，已写成可执行脚本，但**没有真机跑过**。CI 里没有 Windows job —— `drills --run` 用 `cmd.exe` 执行，而 Windows 断言是 PowerShell 写的，直接在 CI 跑会假失败，所以留给人机验证：
   ```bash
   ferry drills --to windows --emit ps1 > /tmp/win.ps1   # 在 Windows 上 powershell -File win.ps1

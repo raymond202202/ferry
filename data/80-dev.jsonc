@@ -5,36 +5,36 @@
       "id": "git",
       "category": "dev",
       "summary": "版本控制",
-      "names": { "linux": "git", "macos": "git", "windows": "git", "windows_cmd": "git" },
+      "names": { "linux": "git", "macos": "git", "freebsd": "git", "windows": "git", "windows_cmd": "git" },
       "universal": true,
       "flags": [],
       "recipes": [
         { "desc": "克隆仓库", "status": "equivalent",
-          "linux": "git clone https://github.com/u/r.git", "macos": "git clone https://github.com/u/r.git",
+          "linux": "git clone https://github.com/u/r.git", "macos": "git clone https://github.com/u/r.git", "freebsd": "git clone https://github.com/u/r.git",
           "windows": "git clone https://github.com/u/r.git",
           "caveats": ["Windows 需先装 Git for Windows；行尾自动转换(eol)可能污染仓库"] },
         { "desc": "查看状态", "status": "equivalent",
-          "linux": "git status -sb", "macos": "git status -sb", "windows": "git status -sb" },
+          "linux": "git status -sb", "macos": "git status -sb", "freebsd": "git status -sb", "windows": "git status -sb" },
         { "desc": "提交", "status": "equivalent",
-          "linux": "git commit -am 'msg'", "macos": "git commit -am 'msg'", "windows": "git commit -am \"msg\"" }
+          "linux": "git commit -am 'msg'", "macos": "git commit -am 'msg'", "freebsd": "git commit -am 'msg'", "windows": "git commit -am \"msg\"" }
       ]
     },
     {
       "id": "docker",
       "category": "dev",
       "summary": "容器管理",
-      "names": { "linux": "docker", "macos": "docker", "windows": "docker", "windows_cmd": "docker" },
+      "names": { "linux": "docker", "macos": "docker", "freebsd": "docker", "windows": "docker", "windows_cmd": "docker" },
       "universal": true,
       "flags": [],
       "recipes": [
         { "desc": "运行容器", "status": "equivalent",
-          "linux": "docker run -it --rm ubuntu bash", "macos": "docker run -it --rm ubuntu bash",
+          "linux": "docker run -it --rm ubuntu bash", "macos": "docker run -it --rm ubuntu bash", "freebsd": "docker run -it --rm ubuntu bash",
           "windows": "docker run -it --rm ubuntu bash",
           "caveats": ["Windows/macOS 需 Docker Desktop（或 WSL2 后端），Linux 原生"] },
         { "desc": "查看容器", "status": "equivalent",
-          "linux": "docker ps -a", "macos": "docker ps -a", "windows": "docker ps -a" },
+          "linux": "docker ps -a", "macos": "docker ps -a", "freebsd": "docker ps -a", "windows": "docker ps -a" },
         { "desc": "挂载当前目录", "status": "approximate",
-          "linux": "docker run -v $(pwd):/app img", "macos": "docker run -v $(pwd):/app img",
+          "linux": "docker run -v $(pwd):/app img", "macos": "docker run -v $(pwd):/app img", "freebsd": "docker run -v $(pwd):/app img",
           "windows": "docker run -v ${PWD}:/app img",
           "caveats": ["Windows 路径需转成 //c/... 或直接 ${PWD}；Docker Desktop 要求共享该盘"] }
       ]
@@ -43,15 +43,15 @@
       "id": "make",
       "category": "dev",
       "summary": "构建工具",
-      "names": { "linux": "make", "macos": "make", "windows": "nmake", "windows_cmd": "nmake" },
+      "names": { "linux": "make", "macos": "make", "freebsd": "make", "windows": "nmake", "windows_cmd": "nmake" },
       "flags": [],
       "recipes": [
         { "desc": "执行默认目标", "status": "approximate",
-          "linux": "make", "macos": "make",
+          "linux": "make", "macos": "make", "freebsd": "make",
           "windows": "nmake",
           "caveats": ["Windows 无 make（可装 MSYS2 的 make 或 mingw32-make）；nmake 用 Visual Studio 工具链"] },
         { "desc": "并行构建", "status": "approximate",
-          "linux": "make -j$(nproc)", "macos": "make -j$(sysctl -n hw.ncpu)",
+          "linux": "make -j$(nproc)", "macos": "make -j$(sysctl -n hw.ncpu)", "freebsd": "make -j$(sysctl -n hw.ncpu)",
           "windows": "nmake /NOLOGO" }
       ]
     },
@@ -59,14 +59,14 @@
       "id": "gcc",
       "category": "dev",
       "summary": "C 编译器",
-      "names": { "linux": "gcc", "macos": "clang", "windows": "cl", "windows_cmd": "cl" },
+      "names": { "linux": "gcc", "macos": "clang", "freebsd": "clang", "windows": "cl", "windows_cmd": "cl" },
       "flags": [
-        { "semantic": "输出文件", "linux": "-o app", "macos": "-o app", "windows": "-Fe:app.exe", "windows_cmd": "" },
-        { "semantic": "优化", "linux": "-O2", "macos": "-O2", "windows": "/O2", "windows_cmd": "" }
+        { "semantic": "输出文件", "linux": "-o app", "macos": "-o app", "freebsd": "-o app", "windows": "-Fe:app.exe", "windows_cmd": "" },
+        { "semantic": "优化", "linux": "-O2", "macos": "-O2", "freebsd": "-O2", "windows": "/O2", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "编译单个 C 文件", "status": "equivalent",
-          "linux": "gcc -O2 -o app main.c", "macos": "clang -O2 -o app main.c",
+          "linux": "gcc -O2 -o app main.c", "macos": "clang -O2 -o app main.c", "freebsd": "clang -O2 -o app main.c",
           "windows": "cl /O2 /Fe:app.exe main.c",
           "caveats": ["Windows 需 Visual Studio Build Tools；或装 MSYS2 用 gcc"] }
       ]
@@ -75,17 +75,17 @@
       "id": "python3",
       "category": "dev",
       "summary": "Python 解释器",
-      "names": { "linux": "python3", "macos": "python3", "windows": "py", "windows_cmd": "py" },
+      "names": { "linux": "python3", "macos": "python3", "freebsd": "python3", "windows": "py", "windows_cmd": "py" },
       "flags": [],
       "recipes": [
         { "desc": "运行脚本", "status": "equivalent",
-          "linux": "python3 app.py", "macos": "python3 app.py",
+          "linux": "python3 app.py", "macos": "python3 app.py", "freebsd": "python3 app.py",
           "windows": "py app.py", "windows_cmd": "py app.py" },
         { "desc": "建虚拟环境", "status": "equivalent",
-          "linux": "python3 -m venv .venv", "macos": "python3 -m venv .venv",
+          "linux": "python3 -m venv .venv", "macos": "python3 -m venv .venv", "freebsd": "python3 -m venv .venv",
           "windows": "py -m venv .venv" },
         { "desc": "激活虚拟环境", "status": "approximate",
-          "linux": "source .venv/bin/activate", "macos": "source .venv/bin/activate",
+          "linux": "source .venv/bin/activate", "macos": "source .venv/bin/activate", "freebsd": ". .venv/bin/activate",
           "windows": ".\\.venv\\Scripts\\Activate.ps1",
           "caveats": ["PowerShell 可能因执行策略拦脚本：Set-ExecutionPolicy -Scope CurrentUser RemoteSigned"] }
       ]
@@ -94,24 +94,24 @@
       "id": "node",
       "category": "dev",
       "summary": "Node.js",
-      "names": { "linux": "node", "macos": "node", "windows": "node", "windows_cmd": "node" },
+      "names": { "linux": "node", "macos": "node", "freebsd": "node", "windows": "node", "windows_cmd": "node" },
       "universal": true,
       "flags": [],
       "recipes": [
         { "desc": "运行脚本", "status": "equivalent",
-          "linux": "node app.js", "macos": "node app.js", "windows": "node app.js" }
+          "linux": "node app.js", "macos": "node app.js", "freebsd": "node app.js", "windows": "node app.js" }
       ]
     },
     {
       "id": "go",
       "category": "dev",
       "summary": "Go 工具链",
-      "names": { "linux": "go", "macos": "go", "windows": "go", "windows_cmd": "go" },
+      "names": { "linux": "go", "macos": "go", "freebsd": "go", "windows": "go", "windows_cmd": "go" },
       "universal": true,
       "flags": [],
       "recipes": [
         { "desc": "构建", "status": "approximate",
-          "linux": "go build -o app ./cmd/app", "macos": "go build -o app ./cmd/app",
+          "linux": "go build -o app ./cmd/app", "macos": "go build -o app ./cmd/app", "freebsd": "go build -o app ./cmd/app",
           "windows": "go build -o app.exe .\\cmd\\app" }
       ]
     },
@@ -119,12 +119,12 @@
       "id": "cargo",
       "category": "dev",
       "summary": "Rust 工具链",
-      "names": { "linux": "cargo", "macos": "cargo", "windows": "cargo", "windows_cmd": "cargo" },
+      "names": { "linux": "cargo", "macos": "cargo", "freebsd": "cargo", "windows": "cargo", "windows_cmd": "cargo" },
       "universal": true,
       "flags": [],
       "recipes": [
         { "desc": "构建 release", "status": "equivalent",
-          "linux": "cargo build --release", "macos": "cargo build --release",
+          "linux": "cargo build --release", "macos": "cargo build --release", "freebsd": "cargo build --release",
           "windows": "cargo build --release" }
       ]
     }

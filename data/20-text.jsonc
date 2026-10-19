@@ -5,21 +5,21 @@
       "id": "cat",
       "category": "text",
       "summary": "输出文件内容",
-      "names": { "linux": "cat", "macos": "cat", "windows": "Get-Content", "windows_cmd": "type" },
+      "names": { "linux": "cat", "macos": "cat", "freebsd": "cat", "windows": "Get-Content", "windows_cmd": "type" },
       "flags": [
-        { "semantic": "显示行号", "linux": "-n", "macos": "-n", "windows": "", "windows_cmd": "" },
-        { "semantic": "压缩空行", "linux": "-s", "macos": "-s", "windows": "", "windows_cmd": "" }
+        { "semantic": "显示行号", "linux": "-n", "macos": "-n", "freebsd": "-n", "windows": "", "windows_cmd": "" },
+        { "semantic": "压缩空行", "linux": "-s", "macos": "-s", "freebsd": "-s", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "输出文件", "status": "equivalent",
-          "linux": "cat a.txt", "macos": "cat a.txt",
+          "linux": "cat a.txt", "macos": "cat a.txt", "freebsd": "cat a.txt",
           "windows": "Get-Content a.txt", "windows_cmd": "type a.txt" },
         { "desc": "带行号", "status": "approximate",
-          "linux": "cat -n a.txt", "macos": "cat -n a.txt",
+          "linux": "cat -n a.txt", "macos": "cat -n a.txt", "freebsd": "cat -n a.txt",
           "windows": "Get-Content a.txt | ForEach-Object { '{0,6}`t{1}' -f (++$i), $_ }",
           "windows_cmd": "findstr /n . a.txt" },
         { "desc": "合并多个文件", "status": "equivalent",
-          "linux": "cat a.txt b.txt > out.txt", "macos": "cat a.txt b.txt > out.txt",
+          "linux": "cat a.txt b.txt > out.txt", "macos": "cat a.txt b.txt > out.txt", "freebsd": "cat a.txt b.txt > out.txt",
           "windows": "Get-Content a.txt, b.txt | Set-Content out.txt",
           "windows_cmd": "type a.txt b.txt > out.txt" }
       ]
@@ -28,11 +28,11 @@
       "id": "less",
       "category": "text",
       "summary": "分页查看",
-      "names": { "linux": "less", "macos": "less", "windows": "more", "windows_cmd": "more" },
+      "names": { "linux": "less", "macos": "less", "freebsd": "less", "windows": "more", "windows_cmd": "more" },
       "flags": [],
       "recipes": [
         { "desc": "分页查看文件", "status": "approximate",
-          "linux": "less a.log", "macos": "less a.log",
+          "linux": "less a.log", "macos": "less a.log", "freebsd": "less a.log",
           "windows": "Get-Content a.log | more", "windows_cmd": "more a.log",
           "caveats": ["PowerShell 的 more 是内置函数，功能远弱于 less（无搜索/无方向键回滚）"] }
       ]
@@ -41,16 +41,16 @@
       "id": "head",
       "category": "text",
       "summary": "取开头若干行",
-      "names": { "linux": "head", "macos": "head", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "head", "macos": "head", "freebsd": "head", "windows": "", "windows_cmd": "" },
       "flags": [
-        { "semantic": "前 N 行", "linux": "-n 20", "macos": "-n 20", "windows": "", "windows_cmd": "" }
+        { "semantic": "前 N 行", "linux": "-n 20", "macos": "-n 20", "freebsd": "-n 20", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "前 20 行", "status": "equivalent",
-          "linux": "head -n 20 a.log", "macos": "head -n 20 a.log",
+          "linux": "head -n 20 a.log", "macos": "head -n 20 a.log", "freebsd": "head -n 20 a.log",
           "windows": "Get-Content a.log -TotalCount 20" },
         { "desc": "前 1KB", "status": "approximate",
-          "linux": "head -c 1024 a.bin", "macos": "head -c 1024 a.bin",
+          "linux": "head -c 1024 a.bin", "macos": "head -c 1024 a.bin", "freebsd": "head -c 1024 a.bin",
           "windows": "[System.IO.File]::ReadAllBytes('a.bin')[0..1023]" }
       ]
     },
@@ -58,17 +58,17 @@
       "id": "tail",
       "category": "text",
       "summary": "取末尾若干行 / 跟踪日志",
-      "names": { "linux": "tail", "macos": "tail", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "tail", "macos": "tail", "freebsd": "tail", "windows": "", "windows_cmd": "" },
       "flags": [
-        { "semantic": "最后 N 行", "linux": "-n 20", "macos": "-n 20", "windows": "", "windows_cmd": "" },
-        { "semantic": "持续跟踪", "linux": "-f", "macos": "-f", "windows": "", "windows_cmd": "" }
+        { "semantic": "最后 N 行", "linux": "-n 20", "macos": "-n 20", "freebsd": "-n 20", "windows": "", "windows_cmd": "" },
+        { "semantic": "持续跟踪", "linux": "-f", "macos": "-f", "freebsd": "-f", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "最后 50 行", "status": "equivalent",
-          "linux": "tail -n 50 a.log", "macos": "tail -n 50 a.log",
+          "linux": "tail -n 50 a.log", "macos": "tail -n 50 a.log", "freebsd": "tail -n 50 a.log",
           "windows": "Get-Content a.log -Tail 50" },
         { "desc": "实时跟踪日志", "status": "equivalent",
-          "linux": "tail -f a.log", "macos": "tail -f a.log",
+          "linux": "tail -f a.log", "macos": "tail -f a.log", "freebsd": "tail -f a.log",
           "windows": "Get-Content a.log -Wait -Tail 20",
           "caveats": ["PowerShell -Wait 靠轮询，延迟约 200ms；Ctrl+C 退出"] }
       ]
@@ -77,38 +77,38 @@
       "id": "grep",
       "category": "text",
       "summary": "按模式搜索文本",
-      "names": { "linux": "grep", "macos": "grep", "windows": "Select-String", "windows_cmd": "findstr" },
+      "names": { "linux": "grep", "macos": "grep", "freebsd": "grep", "windows": "Select-String", "windows_cmd": "findstr" },
       "flags": [
-        { "semantic": "忽略大小写", "linux": "-i", "macos": "-i", "windows": "-CaseSensitive:$false", "windows_cmd": "/i" },
-        { "semantic": "递归", "linux": "-r", "macos": "-r", "windows": "", "windows_cmd": "/s" },
-        { "semantic": "反向匹配", "linux": "-v", "macos": "-v", "windows": "-NotMatch", "windows_cmd": "/v" },
-        { "semantic": "只列文件名", "linux": "-l", "macos": "-l", "windows": "-List", "windows_cmd": "/m" },
-        { "semantic": "统计行数", "linux": "-c", "macos": "-c", "windows": "", "windows_cmd": "/c" },
-        { "semantic": "显示行号", "linux": "-n", "macos": "-n", "windows": "", "windows_cmd": "/n" },
-        { "semantic": "只取匹配部分", "linux": "-o", "macos": "-o", "windows": "", "windows_cmd": "" },
-        { "semantic": "扩展正则（ERE）", "linux": "-E", "macos": "-E", "windows": "", "windows_cmd": "/r" },
-        { "semantic": "固定字符串（非正则）", "linux": "-F", "macos": "-F", "windows": "-SimpleMatch", "windows_cmd": "/l" },
-        { "semantic": "整词匹配", "linux": "-w", "macos": "-w", "windows": "", "windows_cmd": "" },
-        { "semantic": "只输出文件名", "linux": "-H", "macos": "-H", "windows": "", "windows_cmd": "" }
+        { "semantic": "忽略大小写", "linux": "-i", "macos": "-i", "freebsd": "-i", "windows": "-CaseSensitive:$false", "windows_cmd": "/i" },
+        { "semantic": "递归", "linux": "-r", "macos": "-r", "freebsd": "-r", "windows": "", "windows_cmd": "/s" },
+        { "semantic": "反向匹配", "linux": "-v", "macos": "-v", "freebsd": "-v", "windows": "-NotMatch", "windows_cmd": "/v" },
+        { "semantic": "只列文件名", "linux": "-l", "macos": "-l", "freebsd": "-l", "windows": "-List", "windows_cmd": "/m" },
+        { "semantic": "统计行数", "linux": "-c", "macos": "-c", "freebsd": "-c", "windows": "", "windows_cmd": "/c" },
+        { "semantic": "显示行号", "linux": "-n", "macos": "-n", "freebsd": "-n", "windows": "", "windows_cmd": "/n" },
+        { "semantic": "只取匹配部分", "linux": "-o", "macos": "-o", "freebsd": "-o", "windows": "", "windows_cmd": "" },
+        { "semantic": "扩展正则（ERE）", "linux": "-E", "macos": "-E", "freebsd": "-E", "windows": "", "windows_cmd": "/r" },
+        { "semantic": "固定字符串（非正则）", "linux": "-F", "macos": "-F", "freebsd": "-F", "windows": "-SimpleMatch", "windows_cmd": "/l" },
+        { "semantic": "整词匹配", "linux": "-w", "macos": "-w", "freebsd": "-w", "windows": "", "windows_cmd": "" },
+        { "semantic": "只输出文件名", "linux": "-H", "macos": "-H", "freebsd": "-H", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "在文件中搜索", "status": "equivalent",
-          "linux": "grep error app.log", "macos": "grep error app.log",
+          "linux": "grep error app.log", "macos": "grep error app.log", "freebsd": "grep error app.log",
           "windows": "Select-String -Pattern error -Path app.log", "windows_cmd": "findstr error app.log" },
         { "desc": "递归搜索目录", "status": "approximate",
-          "linux": "grep -rn TODO src/", "macos": "grep -rn TODO src/",
+          "linux": "grep -rn TODO src/", "macos": "grep -rn TODO src/", "freebsd": "grep -rn TODO src/",
           "windows": "Get-ChildItem -Recurse -File | Select-String -Pattern TODO",
           "caveats": ["Select-String 默认不区分大小写（grep 默认区分），需 -CaseSensitive"] },
         { "desc": "忽略大小写", "status": "equivalent",
-          "linux": "grep -i error app.log", "macos": "grep -i error app.log",
+          "linux": "grep -i error app.log", "macos": "grep -i error app.log", "freebsd": "grep -i error app.log",
           "windows": "Select-String -Pattern error -Path app.log -CaseSensitive:$false",
           "windows_cmd": "findstr /i error app.log" },
         { "desc": "列出含匹配的文件名", "status": "equivalent",
-          "linux": "grep -rl TODO .", "macos": "grep -rl TODO .",
+          "linux": "grep -rl TODO .", "macos": "grep -rl TODO .", "freebsd": "grep -rl TODO .",
           "windows": "Get-ChildItem -Recurse -File | Select-String -Pattern TODO -List | Select-Object -ExpandProperty Path",
           "windows_cmd": "findstr /s /m TODO *.*" },
         { "desc": "用正则（PCRE）", "status": "unsupported",
-          "linux": "grep -P '\\d{3}-\\d{4}' a.txt", "macos": null,
+          "linux": "grep -P '\\d{3}-\\d{4}' a.txt", "macos": null, "freebsd": null,
           "windows": "Select-String -Pattern '\\d{3}-\\d{4}' -Path a.txt",
           "caveats": ["macOS 的 BSD grep 不支持 -P（PCRE），需 brew install grep 后用 ggrep -P"] }
       ]
@@ -117,22 +117,22 @@
       "id": "sed",
       "category": "text",
       "summary": "流式文本替换编辑",
-      "names": { "linux": "sed", "macos": "sed", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "sed", "macos": "sed", "freebsd": "sed", "windows": "", "windows_cmd": "" },
       "hint": "(Get-Content f -Raw) -replace 'old','new' | Set-Content f（PS 用 .NET 正则，语法与 sed 不同）",
       "flags": [
-        { "semantic": "就地修改", "linux": "-i", "macos": "-i ''", "windows": "", "windows_cmd": "" },
-        { "semantic": "扩展正则", "linux": "-E", "macos": "-E", "windows": "", "windows_cmd": "" }
+        { "semantic": "就地修改", "linux": "-i", "macos": "-i ''", "freebsd": "-i ''", "windows": "", "windows_cmd": "" },
+        { "semantic": "扩展正则", "linux": "-E", "macos": "-E", "freebsd": "-E", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "就地替换（首次出现）", "status": "approximate",
-          "linux": "sed -i 's/old/new/' a.txt", "macos": "sed -i '' 's/old/new/' a.txt",
+          "linux": "sed -i 's/old/new/' a.txt", "macos": "sed -i '' 's/old/new/' a.txt", "freebsd": "sed -i '' 's/old/new/' a.txt",
           "windows": "(Get-Content a.txt) -replace 'old','new' | Set-Content a.txt",
           "caveats": ["BSD sed 的 -i 必须带一个备份后缀参数，空串 '' 表示不备份；这是 Linux→macOS 最高频的坑"] },
         { "desc": "就地替换全部出现", "status": "approximate",
-          "linux": "sed -i 's/old/new/g' a.txt", "macos": "sed -i '' 's/old/new/g' a.txt",
+          "linux": "sed -i 's/old/new/g' a.txt", "macos": "sed -i '' 's/old/new/g' a.txt", "freebsd": "sed -i '' 's/old/new/g' a.txt",
           "windows": "(Get-Content a.txt -Raw) -replace 'old','new' | Set-Content a.txt -NoNewline" },
         { "desc": "打印第 10-20 行", "status": "approximate",
-          "linux": "sed -n '10,20p' a.txt", "macos": "sed -n '10,20p' a.txt",
+          "linux": "sed -n '10,20p' a.txt", "macos": "sed -n '10,20p' a.txt", "freebsd": "sed -n '10,20p' a.txt",
           "windows": "Get-Content a.txt | Select-Object -Skip 9 -First 11" }
       ]
     },
@@ -140,21 +140,21 @@
       "id": "awk",
       "category": "text",
       "summary": "按字段处理文本",
-      "names": { "linux": "awk", "macos": "awk", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "awk", "macos": "awk", "freebsd": "awk", "windows": "", "windows_cmd": "" },
       "hint": "Get-Content f | ForEach-Object { ($_ -split '\\s+')[0] }（按字段取值的等效写法；复杂脚本建议改用 PowerShell 管道或 jq）",
       "flags": [
-        { "semantic": "指定字段分隔符", "linux": "-F:", "macos": "-F:", "windows": "", "windows_cmd": "" }
+        { "semantic": "指定字段分隔符", "linux": "-F:", "macos": "-F:", "freebsd": "-F:", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "取第 1 字段", "status": "approximate",
-          "linux": "awk '{print $1}' a.txt", "macos": "awk '{print $1}' a.txt",
+          "linux": "awk '{print $1}' a.txt", "macos": "awk '{print $1}' a.txt", "freebsd": "awk '{print $1}' a.txt",
           "windows": "Get-Content a.txt | ForEach-Object { ($_ -split '\\s+')[0] }" },
         { "desc": "按冒号分隔取第 2 字段", "status": "approximate",
-          "linux": "awk -F: '{print $2}' passwd", "macos": "awk -F: '{print $2}' passwd",
+          "linux": "awk -F: '{print $2}' passwd", "macos": "awk -F: '{print $2}' passwd", "freebsd": "awk -F: '{print $2}' passwd",
           "windows": "Get-Content passwd | ForEach-Object { ($_ -split ':')[1] }" },
         { "desc": "按条件过滤并求和", "status": "approximate",
           "linux": "awk '$3 > 100 {sum += $3} END {print sum}' a.txt",
-          "macos": "awk '$3 > 100 {sum += $3} END {print sum}' a.txt",
+          "macos": "awk '$3 > 100 {sum += $3} END {print sum}' a.txt", "freebsd": "awk '$3 > 100 {sum += $3} END {print sum}' a.txt",
           "windows": "Get-Content a.txt | Where-Object { [int]($_-split '\\s+')[2] -gt 100 } | ForEach-Object { ($_ -split '\\s+')[2] } | Measure-Object -Sum" }
       ]
     },
@@ -162,24 +162,24 @@
       "id": "sort",
       "category": "text",
       "summary": "排序",
-      "names": { "linux": "sort", "macos": "sort", "windows": "Sort-Object", "windows_cmd": "sort" },
+      "names": { "linux": "sort", "macos": "sort", "freebsd": "sort", "windows": "Sort-Object", "windows_cmd": "sort" },
       "flags": [
-        { "semantic": "数值排序", "linux": "-n", "macos": "-n", "windows": "", "windows_cmd": "" },
-        { "semantic": "去重", "linux": "-u", "macos": "-u", "windows": "-Unique", "windows_cmd": "" },
-        { "semantic": "逆序", "linux": "-r", "macos": "-r", "windows": "-Descending", "windows_cmd": "" }
+        { "semantic": "数值排序", "linux": "-n", "macos": "-n", "freebsd": "-n", "windows": "", "windows_cmd": "" },
+        { "semantic": "去重", "linux": "-u", "macos": "-u", "freebsd": "-u", "windows": "-Unique", "windows_cmd": "" },
+        { "semantic": "逆序", "linux": "-r", "macos": "-r", "freebsd": "-r", "windows": "-Descending", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "字典序排序", "status": "approximate",
-          "linux": "sort a.txt", "macos": "sort a.txt",
+          "linux": "sort a.txt", "macos": "sort a.txt", "freebsd": "sort a.txt",
           "windows": "Get-Content a.txt | Sort-Object", "windows_cmd": "sort a.txt" },
         { "desc": "数值排序", "status": "approximate",
-          "linux": "sort -n a.txt", "macos": "sort -n a.txt",
+          "linux": "sort -n a.txt", "macos": "sort -n a.txt", "freebsd": "sort -n a.txt",
           "windows": "Get-Content a.txt | Sort-Object { [double]$_ }" },
         { "desc": "排序去重", "status": "equivalent",
-          "linux": "sort -u a.txt", "macos": "sort -u a.txt",
+          "linux": "sort -u a.txt", "macos": "sort -u a.txt", "freebsd": "sort -u a.txt",
           "windows": "Get-Content a.txt | Sort-Object -Unique" },
         { "desc": "按版本号排序", "status": "approximate",
-          "linux": "sort -V versions.txt", "macos": "sort -V versions.txt",
+          "linux": "sort -V versions.txt", "macos": "sort -V versions.txt", "freebsd": "sort -V versions.txt",
           "windows": "Get-Content versions.txt | Sort-Object { [version]$_ }",
           "caveats": ["macOS 15+ 的 sort 支持 -V（CI 实测通过）；更旧的系统会报 illegal option，此时 brew install coreutils 用 gsort -V"] }
       ]
@@ -188,17 +188,17 @@
       "id": "uniq",
       "category": "text",
       "summary": "去重相邻行",
-      "names": { "linux": "uniq", "macos": "uniq", "windows": "Get-Unique", "windows_cmd": "" },
+      "names": { "linux": "uniq", "macos": "uniq", "freebsd": "uniq", "windows": "Get-Unique", "windows_cmd": "" },
       "flags": [
-        { "semantic": "统计出现次数", "linux": "-c", "macos": "-c", "windows": "", "windows_cmd": "" },
-        { "semantic": "只输出重复行", "linux": "-d", "macos": "-d", "windows": "", "windows_cmd": "" }
+        { "semantic": "统计出现次数", "linux": "-c", "macos": "-c", "freebsd": "-c", "windows": "", "windows_cmd": "" },
+        { "semantic": "只输出重复行", "linux": "-d", "macos": "-d", "freebsd": "-d", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "排序后去重", "status": "equivalent",
-          "linux": "sort a.txt | uniq", "macos": "sort a.txt | uniq",
+          "linux": "sort a.txt | uniq", "macos": "sort a.txt | uniq", "freebsd": "sort a.txt | uniq",
           "windows": "Get-Content a.txt | Sort-Object -Unique" },
         { "desc": "统计每行出现次数", "status": "approximate",
-          "linux": "sort a.txt | uniq -c", "macos": "sort a.txt | uniq -c",
+          "linux": "sort a.txt | uniq -c", "macos": "sort a.txt | uniq -c", "freebsd": "sort a.txt | uniq -c",
           "windows": "Get-Content a.txt | Group-Object | Sort-Object Count -Descending | Select-Object Count, Name" }
       ]
     },
@@ -206,22 +206,22 @@
       "id": "wc",
       "category": "text",
       "summary": "统计行数/字数/字节",
-      "names": { "linux": "wc", "macos": "wc", "windows": "Measure-Object", "windows_cmd": "find" },
+      "names": { "linux": "wc", "macos": "wc", "freebsd": "wc", "windows": "Measure-Object", "windows_cmd": "find" },
       "flags": [
-        { "semantic": "统计行数", "linux": "-l", "macos": "-l", "windows": "-Line", "windows_cmd": "/c" },
-        { "semantic": "统计字符数", "linux": "-c", "macos": "-c", "windows": "-Character", "windows_cmd": "" },
-        { "semantic": "统计词数", "linux": "-w", "macos": "-w", "windows": "-Word", "windows_cmd": "" }
+        { "semantic": "统计行数", "linux": "-l", "macos": "-l", "freebsd": "-l", "windows": "-Line", "windows_cmd": "/c" },
+        { "semantic": "统计字符数", "linux": "-c", "macos": "-c", "freebsd": "-c", "windows": "-Character", "windows_cmd": "" },
+        { "semantic": "统计词数", "linux": "-w", "macos": "-w", "freebsd": "-w", "windows": "-Word", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "统计行数", "status": "equivalent",
-          "linux": "wc -l a.txt", "macos": "wc -l a.txt",
+          "linux": "wc -l a.txt", "macos": "wc -l a.txt", "freebsd": "wc -l a.txt",
           "windows": "(Get-Content a.txt | Measure-Object -Line).Lines",
           "windows_cmd": "find /c /v \"\" a.txt" },
         { "desc": "统计字符数", "status": "equivalent",
-          "linux": "wc -c a.txt", "macos": "wc -c a.txt",
+          "linux": "wc -c a.txt", "macos": "wc -c a.txt", "freebsd": "wc -c a.txt",
           "windows": "(Get-Item a.txt).Length" },
         { "desc": "统计词数", "status": "equivalent",
-          "linux": "wc -w a.txt", "macos": "wc -w a.txt",
+          "linux": "wc -w a.txt", "macos": "wc -w a.txt", "freebsd": "wc -w a.txt",
           "windows": "(Get-Content a.txt | Measure-Object -Word).Words" }
       ]
     },
@@ -229,17 +229,17 @@
       "id": "cut",
       "category": "text",
       "summary": "按列截取",
-      "names": { "linux": "cut", "macos": "cut", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "cut", "macos": "cut", "freebsd": "cut", "windows": "", "windows_cmd": "" },
       "flags": [
-        { "semantic": "字段分隔符", "linux": "-d:", "macos": "-d:", "windows": "", "windows_cmd": "" },
-        { "semantic": "取字段", "linux": "-f1", "macos": "-f1", "windows": "", "windows_cmd": "" }
+        { "semantic": "字段分隔符", "linux": "-d:", "macos": "-d:", "freebsd": "-d:", "windows": "", "windows_cmd": "" },
+        { "semantic": "取字段", "linux": "-f1", "macos": "-f1", "freebsd": "-f1", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "取冒号分隔的第 1 列", "status": "approximate",
-          "linux": "cut -d: -f1 passwd", "macos": "cut -d: -f1 passwd",
+          "linux": "cut -d: -f1 passwd", "macos": "cut -d: -f1 passwd", "freebsd": "cut -d: -f1 passwd",
           "windows": "Get-Content passwd | ForEach-Object { ($_ -split ':')[0] }" },
         { "desc": "取第 1-3 个字符", "status": "approximate",
-          "linux": "cut -c1-3 a.txt", "macos": "cut -c1-3 a.txt",
+          "linux": "cut -c1-3 a.txt", "macos": "cut -c1-3 a.txt", "freebsd": "cut -c1-3 a.txt",
           "windows": "Get-Content a.txt | ForEach-Object { $_.Substring(0, [Math]::Min(3, $_.Length)) }" }
       ]
     },
@@ -247,14 +247,14 @@
       "id": "tr",
       "category": "text",
       "summary": "字符替换/删除",
-      "names": { "linux": "tr", "macos": "tr", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "tr", "macos": "tr", "freebsd": "tr", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "转大写", "status": "approximate",
-          "linux": "tr 'a-z' 'A-Z' < a.txt", "macos": "tr 'a-z' 'A-Z' < a.txt",
+          "linux": "tr 'a-z' 'A-Z' < a.txt", "macos": "tr 'a-z' 'A-Z' < a.txt", "freebsd": "tr 'a-z' 'A-Z' < a.txt",
           "windows": "(Get-Content a.txt -Raw).ToUpper()" },
         { "desc": "删除回车符（CRLF→LF）", "status": "approximate",
-          "linux": "tr -d '\\r' < a.txt > b.txt", "macos": "tr -d '\\r' < a.txt > b.txt",
+          "linux": "tr -d '\\r' < a.txt > b.txt", "macos": "tr -d '\\r' < a.txt > b.txt", "freebsd": "tr -d '\\r' < a.txt > b.txt",
           "windows": "(Get-Content a.txt -Raw) -replace \"`r\", '' | Set-Content b.txt -NoNewline" }
       ]
     },
@@ -262,19 +262,19 @@
       "id": "diff",
       "category": "text",
       "summary": "比较文件差异",
-      "names": { "linux": "diff", "macos": "diff", "windows": "Compare-Object", "windows_cmd": "fc" },
+      "names": { "linux": "diff", "macos": "diff", "freebsd": "diff", "windows": "Compare-Object", "windows_cmd": "fc" },
       "flags": [
-        { "semantic": "统一格式", "linux": "-u", "macos": "-u", "windows": "", "windows_cmd": "" },
-        { "semantic": "忽略大小写", "linux": "-i", "macos": "-i", "windows": "", "windows_cmd": "" }
+        { "semantic": "统一格式", "linux": "-u", "macos": "-u", "freebsd": "-u", "windows": "", "windows_cmd": "" },
+        { "semantic": "忽略大小写", "linux": "-i", "macos": "-i", "freebsd": "-i", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "比较两个文件", "status": "approximate",
-          "linux": "diff a.txt b.txt", "macos": "diff a.txt b.txt",
+          "linux": "diff a.txt b.txt", "macos": "diff a.txt b.txt", "freebsd": "diff a.txt b.txt",
           "windows": "Compare-Object (Get-Content a.txt) (Get-Content b.txt)",
           "windows_cmd": "fc a.txt b.txt",
           "caveats": ["Compare-Object 输出的是对象差异（=> / <=），不是 patch 格式"] },
         { "desc": "生成补丁", "status": "unsupported",
-          "linux": "diff -u a.txt b.txt > fix.patch", "macos": "diff -u a.txt b.txt > fix.patch",
+          "linux": "diff -u a.txt b.txt > fix.patch", "macos": "diff -u a.txt b.txt > fix.patch", "freebsd": "diff -u a.txt b.txt > fix.patch",
           "windows": "git diff --no-index a.txt b.txt",
           "caveats": ["Windows 无内置 diff -u；装了 Git 可用 git diff --no-index"] }
       ]
@@ -283,16 +283,16 @@
       "id": "tee",
       "category": "text",
       "summary": "输出同时写文件",
-      "names": { "linux": "tee", "macos": "tee", "windows": "Tee-Object", "windows_cmd": "" },
+      "names": { "linux": "tee", "macos": "tee", "freebsd": "tee", "windows": "Tee-Object", "windows_cmd": "" },
       "flags": [
-        { "semantic": "追加", "linux": "-a", "macos": "-a", "windows": "-Append", "windows_cmd": "" }
+        { "semantic": "追加", "linux": "-a", "macos": "-a", "freebsd": "-a", "windows": "-Append", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "输出并保存", "status": "equivalent",
-          "linux": "cmd | tee out.log", "macos": "cmd | tee out.log",
+          "linux": "cmd | tee out.log", "macos": "cmd | tee out.log", "freebsd": "cmd | tee out.log",
           "windows": "cmd | Tee-Object -FilePath out.log" },
         { "desc": "输出并追加", "status": "equivalent",
-          "linux": "cmd | tee -a out.log", "macos": "cmd | tee -a out.log",
+          "linux": "cmd | tee -a out.log", "macos": "cmd | tee -a out.log", "freebsd": "cmd | tee -a out.log",
           "windows": "cmd | Tee-Object -FilePath out.log -Append" }
       ]
     },
@@ -300,18 +300,18 @@
       "id": "xargs",
       "category": "text",
       "summary": "把输入变成命令参数",
-      "names": { "linux": "xargs", "macos": "xargs", "windows": "ForEach-Object", "windows_cmd": "for" },
+      "names": { "linux": "xargs", "macos": "xargs", "freebsd": "xargs", "windows": "ForEach-Object", "windows_cmd": "for" },
       "flags": [
-        { "semantic": "每行一个参数", "linux": "-n1", "macos": "-n1", "windows": "", "windows_cmd": "" }
+        { "semantic": "每行一个参数", "linux": "-n1", "macos": "-n1", "freebsd": "-n1", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "对每个结果执行命令", "status": "approximate",
           "linux": "find . -name '*.log' | xargs rm -f",
-          "macos": "find . -name '*.log' | xargs rm -f",
+          "macos": "find . -name '*.log' | xargs rm -f", "freebsd": "find . -name '*.log' | xargs rm -f",
           "windows": "Get-ChildItem -Recurse -Filter *.log | ForEach-Object { Remove-Item $_.FullName -Force }",
           "caveats": ["PowerShell 是对象管道，不需要 xargs；参数逐个传入而非拼成一行"] },
         { "desc": "批量压缩", "status": "approximate",
-          "linux": "ls *.txt | xargs -n1 gzip", "macos": "ls *.txt | xargs -n1 gzip",
+          "linux": "ls *.txt | xargs -n1 gzip", "macos": "ls *.txt | xargs -n1 gzip", "freebsd": "ls *.txt | xargs -n1 gzip",
           "windows": "Get-ChildItem *.txt | ForEach-Object { Compress-Archive $_ ($_.Name + '.zip') }" }
       ]
     },
@@ -319,17 +319,17 @@
       "id": "jq",
       "category": "text",
       "summary": "解析 JSON",
-      "names": { "linux": "jq", "macos": "jq", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "jq", "macos": "jq", "freebsd": "jq", "windows": "", "windows_cmd": "" },
       "flags": [
-        { "semantic": "原始输出（去引号）", "linux": "-r", "macos": "-r", "windows": "", "windows_cmd": "" }
+        { "semantic": "原始输出（去引号）", "linux": "-r", "macos": "-r", "freebsd": "-r", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "取字段", "status": "approximate",
-          "linux": "jq '.name' a.json", "macos": "jq '.name' a.json",
+          "linux": "jq '.name' a.json", "macos": "jq '.name' a.json", "freebsd": "jq '.name' a.json",
           "windows": "(Get-Content a.json -Raw | ConvertFrom-Json).name",
           "caveats": ["Windows 用 ConvertFrom-Json，复杂过滤表达式需改写成对象访问"] },
         { "desc": "数组取子字段", "status": "approximate",
-          "linux": "jq -r '.[].name' a.json", "macos": "jq -r '.[].name' a.json",
+          "linux": "jq -r '.[].name' a.json", "macos": "jq -r '.[].name' a.json", "freebsd": "jq -r '.[].name' a.json",
           "windows": "(Get-Content a.json -Raw | ConvertFrom-Json) | ForEach-Object { $_.name }" }
       ]
     },
@@ -337,17 +337,17 @@
       "id": "base64",
       "category": "text",
       "summary": "Base64 编解码",
-      "names": { "linux": "base64", "macos": "base64", "windows": "", "windows_cmd": "certutil" },
+      "names": { "linux": "base64", "macos": "base64", "freebsd": "base64", "windows": "", "windows_cmd": "certutil" },
       "flags": [
-        { "semantic": "解码", "linux": "-d", "macos": "-D", "windows": "", "windows_cmd": "-decode" }
+        { "semantic": "解码", "linux": "-d", "macos": "-D", "freebsd": "-D", "windows": "", "windows_cmd": "-decode" }
       ],
       "recipes": [
         { "desc": "编码", "status": "approximate",
-          "linux": "base64 a.txt > a.b64", "macos": "base64 a.txt > a.b64",
+          "linux": "base64 a.txt > a.b64", "macos": "base64 a.txt > a.b64", "freebsd": "base64 a.txt > a.b64",
           "windows": "[Convert]::ToBase64String([IO.File]::ReadAllBytes('a.txt')) | Set-Content a.b64",
           "windows_cmd": "certutil -encode a.txt a.b64" },
         { "desc": "解码", "status": "approximate",
-          "linux": "base64 -d a.b64 > a.txt", "macos": "base64 -D a.b64 > a.txt",
+          "linux": "base64 -d a.b64 > a.txt", "macos": "base64 -D a.b64 > a.txt", "freebsd": "base64 -D a.b64 > a.txt",
           "windows": "[IO.File]::WriteAllBytes('a.txt', [Convert]::FromBase64String((Get-Content a.b64 -Raw)))",
           "windows_cmd": "certutil -decode a.b64 a.txt",
           "caveats": ["macOS 的解码参数是 -D（大写），新版也接受 -d"] }
@@ -357,11 +357,11 @@
       "id": "sha256sum",
       "category": "text",
       "summary": "计算 SHA-256 校验和",
-      "names": { "linux": "sha256sum", "macos": "shasum", "windows": "Get-FileHash", "windows_cmd": "certutil" },
+      "names": { "linux": "sha256sum", "macos": "shasum", "freebsd": "sha256", "windows": "Get-FileHash", "windows_cmd": "certutil" },
       "flags": [],
       "recipes": [
         { "desc": "计算文件 SHA-256", "status": "equivalent",
-          "linux": "sha256sum a.bin", "macos": "shasum -a 256 a.bin",
+          "linux": "sha256sum a.bin", "macos": "shasum -a 256 a.bin", "freebsd": "sha256 -q a.bin",
           "windows": "Get-FileHash a.bin -Algorithm SHA256", "windows_cmd": "certutil -hashfile a.bin SHA256",
           "caveats": ["macOS 15+ 自带 /sbin/sha256sum（CI 实测存在），更旧系统只有 shasum；shasum -a 256 两版都可用，故默认生成它"] }
       ]
@@ -370,11 +370,11 @@
       "id": "md5sum",
       "category": "text",
       "summary": "计算 MD5 校验和",
-      "names": { "linux": "md5sum", "macos": "md5", "windows": "Get-FileHash", "windows_cmd": "certutil" },
+      "names": { "linux": "md5sum", "macos": "md5", "freebsd": "md5", "windows": "Get-FileHash", "windows_cmd": "certutil" },
       "flags": [],
       "recipes": [
         { "desc": "计算文件 MD5", "status": "equivalent",
-          "linux": "md5sum a.bin", "macos": "md5 a.bin",
+          "linux": "md5sum a.bin", "macos": "md5 a.bin", "freebsd": "md5 a.bin",
           "windows": "Get-FileHash a.bin -Algorithm MD5", "windows_cmd": "certutil -hashfile a.bin MD5" }
       ]
     },
@@ -382,11 +382,11 @@
       "id": "iconv",
       "category": "text",
       "summary": "转换文本编码",
-      "names": { "linux": "iconv", "macos": "iconv", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "iconv", "macos": "iconv", "freebsd": "iconv", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "GBK 转 UTF-8", "status": "approximate",
-          "linux": "iconv -f GBK -t UTF-8 a.txt > b.txt", "macos": "iconv -f GBK -t UTF-8 a.txt > b.txt",
+          "linux": "iconv -f GBK -t UTF-8 a.txt > b.txt", "macos": "iconv -f GBK -t UTF-8 a.txt > b.txt", "freebsd": "iconv -f GBK -t UTF-8 a.txt > b.txt",
           "windows": "$s = [IO.File]::ReadAllText('a.txt', [Text.Encoding]::GetEncoding('GBK')); [IO.File]::WriteAllText('b.txt', $s, [Text.UTF8Encoding]::new($false))" }
       ]
     },
@@ -394,20 +394,20 @@
       "id": "echo",
       "category": "text",
       "summary": "输出文本 / 打印变量",
-      "names": { "linux": "echo", "macos": "echo", "windows": "Write-Output", "windows_cmd": "echo" },
+      "names": { "linux": "echo", "macos": "echo", "freebsd": "echo", "windows": "Write-Output", "windows_cmd": "echo" },
       "flags": [
-        { "semantic": "不换行", "linux": "-n", "macos": "-n", "windows": "-NoNewline", "windows_cmd": "" },
-        { "semantic": "解释转义", "linux": "-e", "macos": "-e", "windows": "", "windows_cmd": "" }
+        { "semantic": "不换行", "linux": "-n", "macos": "-n", "freebsd": "-n", "windows": "-NoNewline", "windows_cmd": "" },
+        { "semantic": "解释转义", "linux": "-e", "macos": "-e", "freebsd": "-e", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "输出一行", "status": "equivalent",
-          "linux": "echo hello", "macos": "echo hello",
+          "linux": "echo hello", "macos": "echo hello", "freebsd": "echo hello",
           "windows": "Write-Output hello", "windows_cmd": "echo hello" },
         { "desc": "输出变量", "status": "equivalent",
-          "linux": "echo $PATH", "macos": "echo $PATH",
+          "linux": "echo $PATH", "macos": "echo $PATH", "freebsd": "echo $PATH",
           "windows": "Write-Output $env:PATH", "windows_cmd": "echo %PATH%" },
         { "desc": "不换行输出", "status": "approximate",
-          "linux": "echo -n hello", "macos": "echo -n hello",
+          "linux": "echo -n hello", "macos": "echo -n hello", "freebsd": "echo -n hello",
           "windows": "Write-Host -NoNewline hello",
           "caveats": ["macOS 的 zsh 内置 echo 支持 -n，但 sh/BSD echo 对 -n 的行为不统一，跨平台建议 printf"] }
       ]
@@ -416,11 +416,11 @@
       "id": "sed_lines",
       "category": "text",
       "summary": "按行号删除/替换",
-      "names": { "linux": "sed", "macos": "sed", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "sed", "macos": "sed", "freebsd": "sed", "windows": "", "windows_cmd": "" },
       "flags": [],
       "recipes": [
         { "desc": "删除第 3 行", "status": "approximate",
-          "linux": "sed -i '3d' a.txt", "macos": "sed -i '' '3d' a.txt",
+          "linux": "sed -i '3d' a.txt", "macos": "sed -i '' '3d' a.txt", "freebsd": "sed -i '' '3d' a.txt",
           "windows": "Set-Content a.txt (Get-Content a.txt | Where-Object { $_.ReadCount -ne 3 })" }
       ]
     }

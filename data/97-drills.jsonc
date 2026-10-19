@@ -185,6 +185,292 @@
       "setup": "New-Item -ItemType File target.txt -Force | Out-Null",
       "cmd": "New-Item -ItemType SymbolicLink -Path link.txt -Target target.txt", "expect": "success",
       "note": "若为 fail：当前会话无建符号链接权限，ferry 会提醒管理员/开发者模式"
+    },
+    {
+      "id": "fbsd-sed-i-needs-suffix", "platform": "freebsd", "shell": "posix",
+      "summary": "BSD sed 的 -i 不带后缀会失败",
+      "cmd": "sed -i 's/a/b/' f.txt", "expect": "fail",
+      "note": "FreeBSD base 的 sed 是 BSD 版，-i 后紧跟的字符被当作备份后缀"
+    },
+    {
+      "id": "fbsd-sed-i-empty-suffix", "platform": "freebsd", "shell": "posix",
+      "summary": "sed -i '' 空后缀可用",
+      "setup": "printf 'a\\n' > f.txt",
+      "cmd": "sed -i '' 's/a/b/' f.txt", "expect": "success"
+    },
+    {
+      "id": "fbsd-sed-i-suffix-bak", "platform": "freebsd", "shell": "posix",
+      "summary": "sed -i '.bak' 会生成 f.txt.bak",
+      "setup": "printf 'a\\n' > f.txt",
+      "cmd": "sed -i '.bak' 's/a/b/' f.txt", "expect": "success"
+    },
+    {
+      "id": "fbsd-stat-f-size", "platform": "freebsd", "shell": "posix",
+      "summary": "stat -f %z 是 BSD 写法",
+      "setup": "printf 'abc' > f.txt",
+      "cmd": "stat -f %z f.txt", "expect": "success"
+    },
+    {
+      "id": "fbsd-stat-c-fails", "platform": "freebsd", "shell": "posix",
+      "summary": "stat -c %s（GNU 写法）在 FreeBSD 失败",
+      "setup": "printf 'abc' > f.txt",
+      "cmd": "stat -c %s f.txt", "expect": "fail"
+    },
+    {
+      "id": "fbsd-date-j-f", "platform": "freebsd", "shell": "posix",
+      "summary": "date -j -f 解析日期",
+      "cmd": "date -j -f '%Y-%m-%d' '2026-01-31' +%s", "expect": "success"
+    },
+    {
+      "id": "fbsd-date-d-fails", "platform": "freebsd", "shell": "posix",
+      "summary": "date -d（GNU 写法）在 FreeBSD 失败",
+      "cmd": "date -d '2026-01-31' +%s", "expect": "fail"
+    },
+    {
+      "id": "fbsd-date-r-epoch", "platform": "freebsd", "shell": "posix",
+      "summary": "date -r <epoch> 反解时间",
+      "cmd": "date -r 1700000000 +%Y", "expect": "success"
+    },
+    {
+      "id": "fbsd-date-v-offset", "platform": "freebsd", "shell": "posix",
+      "summary": "date -v-1d 做日期偏移",
+      "cmd": "date -v-1d +%F", "expect": "success"
+    },
+    {
+      "id": "fbsd-sort-V", "platform": "freebsd", "shell": "posix",
+      "summary": "FreeBSD 15 的 sort 支持 -V",
+      "setup": "printf 'a1\\na10\\na2\\n' > v.txt",
+      "cmd": "sort -V v.txt", "expect": "success"
+    },
+    {
+      "id": "fbsd-du-maxdepth-fails", "platform": "freebsd", "shell": "posix",
+      "summary": "du --max-depth 不可用",
+      "cmd": "du --max-depth=1 .", "expect": "fail"
+    },
+    {
+      "id": "fbsd-du-d1", "platform": "freebsd", "shell": "posix",
+      "summary": "du -d 1 是 BSD 写法",
+      "cmd": "du -d 1 .", "expect": "success"
+    },
+    {
+      "id": "fbsd-grep-P-fails", "platform": "freebsd", "shell": "posix",
+      "summary": "BSD grep 不支持 -P（PCRE）",
+      "setup": "printf 'x1\\n' > g.txt",
+      "cmd": "grep -P '\\d+' g.txt", "expect": "fail"
+    },
+    {
+      "id": "fbsd-grep-E", "platform": "freebsd", "shell": "posix",
+      "summary": "grep -E 可用",
+      "setup": "printf 'x1\\ny\\n' > g.txt",
+      "cmd": "grep -E '[0-9]' g.txt", "expect": "success"
+    },
+    {
+      "id": "fbsd-readlink-f", "platform": "freebsd", "shell": "posix",
+      "summary": "FreeBSD 15 的 readlink 已支持 -f",
+      "cmd": "readlink -f /etc/passwd", "expect": "success"
+    },
+    {
+      "id": "fbsd-sha256-q", "platform": "freebsd", "shell": "posix",
+      "summary": "sha256 -q 输出裸哈希",
+      "setup": "printf 'abc' > f.txt",
+      "cmd": "sha256 -q f.txt", "expect": "success"
+    },
+    {
+      "id": "fbsd-md5-q", "platform": "freebsd", "shell": "posix",
+      "summary": "md5 -q 输出裸哈希",
+      "setup": "printf 'abc' > f.txt",
+      "cmd": "md5 -q f.txt", "expect": "success"
+    },
+    {
+      "id": "fbsd-fetch-exists", "platform": "freebsd", "shell": "posix",
+      "summary": "base 自带 fetch（无 curl/wget）",
+      "cmd": "test -x /usr/bin/fetch", "expect": "success"
+    },
+    {
+      "id": "fbsd-nproc", "platform": "freebsd", "shell": "posix",
+      "summary": "FreeBSD 15 base 有 nproc",
+      "cmd": "nproc", "expect": "success"
+    },
+    {
+      "id": "fbsd-timeout", "platform": "freebsd", "shell": "posix",
+      "summary": "base 有 timeout（macOS 没有）",
+      "cmd": "timeout 5 true", "expect": "success"
+    },
+    {
+      "id": "fbsd-realpath", "platform": "freebsd", "shell": "posix",
+      "summary": "base 有 realpath",
+      "cmd": "realpath /etc/../etc/passwd", "expect": "success"
+    },
+    {
+      "id": "fbsd-zstd", "platform": "freebsd", "shell": "posix",
+      "summary": "base 有 zstd",
+      "cmd": "zstd -V", "expect": "success"
+    },
+    {
+      "id": "fbsd-tar-czf", "platform": "freebsd", "shell": "posix",
+      "summary": "base 的 tar 是 bsdtar，-czf 可用",
+      "setup": "printf 'hi\\n' > f.txt",
+      "cmd": "tar -czf a.tgz f.txt", "expect": "success"
+    },
+    {
+      "id": "fbsd-base64-d", "platform": "freebsd", "shell": "posix",
+      "summary": "base64 -d 解码",
+      "cmd": "printf 'YWJjCg==' | base64 -d", "expect": "success"
+    },
+    {
+      "id": "fbsd-install-d", "platform": "freebsd", "shell": "posix",
+      "summary": "base 有 install（建目录/装文件）",
+      "cmd": "install -d sub", "expect": "success"
+    },
+    {
+      "id": "fbsd-find-maxdepth", "platform": "freebsd", "shell": "posix",
+      "summary": "find 支持 -maxdepth",
+      "cmd": "find . -maxdepth 1", "expect": "success"
+    },
+    {
+      "id": "fbsd-xargs-r", "platform": "freebsd", "shell": "posix",
+      "summary": "xargs 支持 -r",
+      "setup": "touch f.txt",
+      "cmd": "echo f.txt | xargs -r ls", "expect": "success"
+    },
+    {
+      "id": "fbsd-sh-no-brace-expand", "platform": "freebsd", "shell": "posix",
+      "summary": "FreeBSD sh 不做花括号扩展",
+      "cmd": "test \"$(echo a{1,2})\" = \"a{1,2}\"", "expect": "success",
+      "note": "/bin/sh 是 FreeBSD sh（非 bash 非 zsh），a{1,2} 原样输出"
+    },
+    {
+      "id": "fbsd-no-bash", "platform": "freebsd", "shell": "posix",
+      "summary": "base 没有 bash",
+      "cmd": "bash -c true", "expect": "fail",
+      "note": "需 pkg install bash；脚本首选 #!/bin/sh"
+    },
+    {
+      "id": "fbsd-no-shuf", "platform": "freebsd", "shell": "posix",
+      "summary": "base 没有 shuf",
+      "cmd": "shuf -n 1 -e a b", "expect": "fail"
+    },
+    {
+      "id": "fbsd-sysrc-query", "platform": "freebsd", "shell": "posix",
+      "summary": "sysrc 查询 rc.conf 变量",
+      "cmd": "sysrc -n sshd_enable", "expect": "success"
+    },
+    {
+      "id": "fbsd-service-e", "platform": "freebsd", "shell": "posix",
+      "summary": "service -e 列出已启用服务",
+      "cmd": "service -e", "expect": "success"
+    },
+    {
+      "id": "fbsd-sockstat-listen", "platform": "freebsd", "shell": "posix",
+      "summary": "sockstat 看监听端口（无 lsof）",
+      "cmd": "sockstat -4l", "expect": "success"
+    },
+    {
+      "id": "fbsd-gpart-show", "platform": "freebsd", "shell": "posix",
+      "summary": "gpart show 看分区（无 lsblk/diskutil）",
+      "cmd": "gpart show", "expect": "success"
+    },
+    {
+      "id": "fbsd-mdconfig-needs-root", "platform": "freebsd", "shell": "posix",
+      "summary": "mdconfig 需要 root",
+      "cmd": "mdconfig -l", "expect": "fail"
+    },
+    {
+      "id": "fbsd-pkg-clean-system", "platform": "freebsd", "shell": "posix",
+      "summary": "干净系统上 pkg 未 bootstrap",
+      "cmd": "pkg -v", "expect": "any",
+      "note": "expect=any：已执行过 pkg bootstrap 的机器会成功；报 'not yet installed' 时用 ASSUME_ALWAYS_YES=yes pkg bootstrap"
+    },
+    {
+      "id": "fbsd-no-sudo", "platform": "freebsd", "shell": "posix",
+      "summary": "base 没有 sudo/doas",
+      "cmd": "sudo true", "expect": "fail",
+      "note": "提权用 su -（交互），或 pkg install sudo 后加入 wheel 组"
+    },
+    {
+      "id": "fbsd-kldstat", "platform": "freebsd", "shell": "posix",
+      "summary": "kldstat 看已加载内核模块",
+      "cmd": "kldstat", "expect": "success"
+    },
+    {
+      "id": "fbsd-freebsd-version", "platform": "freebsd", "shell": "posix",
+      "summary": "freebsd-version 查系统版本",
+      "cmd": "freebsd-version", "expect": "success"
+    },
+    {
+      "id": "fbsd-sysctl-ncpu", "platform": "freebsd", "shell": "posix",
+      "summary": "sysctl -n hw.ncpu 取核心数",
+      "cmd": "sysctl -n hw.ncpu", "expect": "success"
+    },
+    {
+      "id": "fbsd-ifconfig", "platform": "freebsd", "shell": "posix",
+      "summary": "ifconfig 管理网络（无 ip 命令）",
+      "cmd": "ifconfig -a", "expect": "success"
+    },
+    {
+      "id": "fbsd-top-batch", "platform": "freebsd", "shell": "posix",
+      "summary": "top -b -n 1 可批处理",
+      "cmd": "top -b -n 1", "expect": "success"
+    },
+    {
+      "id": "fbsd-vmstat-s", "platform": "freebsd", "shell": "posix",
+      "summary": "vmstat -s 看内存概况（无 free）",
+      "cmd": "vmstat -s", "expect": "success"
+    },
+    {
+      "id": "fbsd-ps-o", "platform": "freebsd", "shell": "posix",
+      "summary": "ps -ax -o pid,rss,comm 自定义列",
+      "cmd": "ps -ax -o pid,rss,comm", "expect": "success"
+    },
+    {
+      "id": "fbsd-procstat", "platform": "freebsd", "shell": "posix",
+      "summary": "procstat -f 看进程打开的文件",
+      "cmd": "procstat -f 1", "expect": "success"
+    },
+    {
+      "id": "fbsd-truss", "platform": "freebsd", "shell": "posix",
+      "summary": "truss 跟踪系统调用（无 strace）",
+      "cmd": "truss -f true", "expect": "success"
+    },
+    {
+      "id": "fbsd-ls-color", "platform": "freebsd", "shell": "posix",
+      "summary": "FreeBSD 15 的 ls 接受 --color",
+      "cmd": "ls --color=auto /etc", "expect": "success"
+    },
+    {
+      "id": "fbsd-no-curl", "platform": "freebsd", "shell": "posix",
+      "summary": "base 没有 curl",
+      "cmd": "curl --version", "expect": "fail"
+    },
+    {
+      "id": "fbsd-no-git", "platform": "freebsd", "shell": "posix",
+      "summary": "base 没有 git",
+      "cmd": "git --version", "expect": "fail"
+    },
+    {
+      "id": "fbsd-no-python3", "platform": "freebsd", "shell": "posix",
+      "summary": "base 没有 python3",
+      "cmd": "python3 --version", "expect": "fail"
+    },
+    {
+      "id": "fbsd-no-node", "platform": "freebsd", "shell": "posix",
+      "summary": "base 没有 node",
+      "cmd": "node --version", "expect": "fail"
+    },
+    {
+      "id": "fbsd-no-lsof", "platform": "freebsd", "shell": "posix",
+      "summary": "base 没有 lsof",
+      "cmd": "lsof -v", "expect": "fail"
+    },
+    {
+      "id": "fbsd-no-rsync", "platform": "freebsd", "shell": "posix",
+      "summary": "base 没有 rsync",
+      "cmd": "rsync --version", "expect": "fail"
+    },
+    {
+      "id": "fbsd-no-zip", "platform": "freebsd", "shell": "posix",
+      "summary": "base 没有 zip（有 unzip）",
+      "cmd": "zip -v", "expect": "fail"
     }
   ]
 }
