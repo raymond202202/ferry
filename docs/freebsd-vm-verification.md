@@ -39,7 +39,7 @@ openssl passwd -6 '<VM_PASSWORD>'          # 得到 $6$... 哈希
 #cloud-config
 hostname: fbsd
 users:
-  - name: fantastic
+  - name: dev
     sudo: "ALL=(ALL) NOPASSWD:ALL"
     shell: /bin/sh
     lock_passwd: false
@@ -85,7 +85,7 @@ qemu-system-x86_64 \
 
 ```sh
 ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-    -i ~/.ssh/id_ed25519 fantastic@127.0.0.1
+    -i ~/.ssh/id_ed25519 dev@127.0.0.1
 ```
 
 ## 4. 在 FreeBSD 上装 node/npm（base 没有，且可能无 root）
@@ -99,7 +99,7 @@ ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
 aria2c -x16 -o packagesite.pkg https://pkg.FreeBSD.org/FreeBSD:15:amd64/quarterly/packagesite.pkg
 tar xf packagesite.pkg --to-stdout packagesite.yaml > packagesite.yaml   # 索引
 # 按名字 BFS 解析依赖 → 生成 url 列表 → aria2c -i urls.txt
-scp -P 2222 pkgs.tar fantastic@127.0.0.1:/tmp/
+scp -P 2222 pkgs.tar dev@127.0.0.1:/tmp/
 # VM 内
 mkdir -p ~/pkgroot && cd ~/pkgroot && tar xf /tmp/pkgs.tar
 ```

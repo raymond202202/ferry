@@ -127,6 +127,96 @@
           "linux": "cargo build --release", "macos": "cargo build --release", "freebsd": "cargo build --release",
           "windows": "cargo build --release" }
       ]
+    },
+    {
+      "id": "npx", "category": "dev", "summary": "npx 临时执行 npm 包命令",
+      "names": { "linux": "npx", "macos": "npx", "freebsd": "npx", "windows": "npx", "windows_cmd": "npx" },
+      "universal": true,
+      "flags": [],
+      "recipes": [
+        { "desc": "临时跑一个包", "status": "equivalent",
+          "linux": "npx serve -l 3000", "macos": "npx serve -l 3000", "freebsd": "npx serve -l 3000",
+          "windows": "npx serve -l 3000", "windows_cmd": "npx serve -l 3000",
+          "caveats": ["npm scripts 场景注意：Windows 上 npm 脚本用 cmd 不是 sh（见 js-npm-scripts-shell）"] }
+      ]
+    },
+    {
+      "id": "strings", "category": "dev", "summary": "提取二进制中的可打印字符串",
+      "names": { "linux": "strings", "macos": "strings", "freebsd": "strings", "windows": "", "windows_cmd": "" },
+      "flags": [],
+      "recipes": [
+        { "desc": "列出二进制内字符串", "status": "unsupported",
+          "linux": "strings app.exe", "macos": "strings app.exe", "freebsd": "strings app.exe",
+          "windows": "",
+          "caveats": ["Windows 无原生 strings；PowerShell 等价写法：Get-Content app.exe -Encoding Byte -ReadCount 0 等不可靠，建议用 python -c \"import sys;d=open(sys.argv[1],'rb').read();print(''.join(chr(b) if 32<=b<127 else '\\n' for b in d))\" 粗筛，或装 Sysinternals strings.exe"] }
+      ]
+    },
+    {
+      "id": "route", "category": "net", "summary": "查看/操作路由表",
+      "names": { "linux": "ip route", "macos": "netstat -r", "freebsd": "netstat -r", "windows": "Get-NetRoute", "windows_cmd": "route" },
+      "flags": [
+        { "semantic": "打印 IPv4 路由表", "linux": "ip route show", "macos": "netstat -rn", "freebsd": "netstat -rn", "windows": "Get-NetRoute -AddressFamily IPv4", "windows_cmd": "route print -4" },
+        { "semantic": "加静态路由", "linux": "ip route add 10.0.0.0/8 via 192.168.1.1", "macos": "route -n add -net 10.0.0.0/8 192.168.1.1", "freebsd": "route add -net 10.0.0.0/8 192.168.1.1", "windows": "New-NetRoute -DestinationPrefix 10.0.0.0/8 -NextHop 192.168.1.1", "windows_cmd": "route add 10.0.0.0 mask 255.0.0.0 192.168.1.1" }
+      ],
+      "recipes": []
+    },
+    {
+      "id": "openssl", "category": "net", "summary": "TLS/加密工具（版本方言大）",
+      "names": { "linux": "openssl", "macos": "openssl", "freebsd": "openssl", "windows": "openssl", "windows_cmd": "openssl" },
+      "universal": true,
+      "flags": [],
+      "recipes": [
+        { "desc": "测试 TLS 握手", "status": "equivalent",
+          "linux": "openssl s_client -connect host:443 -servername host", "macos": "openssl s_client -connect host:443 -servername host", "freebsd": "openssl s_client -connect host:443 -servername host",
+          "windows": "openssl s_client -connect host:443 -servername host", "windows_cmd": "openssl s_client -connect host:443 -servername host",
+          "caveats": ["macOS 自带 LibreSSL 老版，部分新子命令/参数缺失；各平台版本差异大，输出解析前先看 openssl version"] }
+      ]
+    },
+    {
+      "id": "cmake", "category": "dev", "summary": "CMake 构建系统",
+      "names": { "linux": "cmake", "macos": "cmake", "freebsd": "cmake", "windows": "cmake", "windows_cmd": "cmake" },
+      "universal": true,
+      "flags": [],
+      "recipes": [
+        { "desc": "配置生成器差异", "status": "approximate",
+          "linux": "cmake -S . -B build", "macos": "cmake -S . -B build", "freebsd": "cmake -S . -B build",
+          "windows": "cmake -S . -B build -G \"Visual Studio 17 2022\"",
+          "caveats": ["默认生成器不同（Linux=Unix Makefiles，Windows=VS/ Ninja 需显式指定）；路径含反斜杠与空格时引号规则不同"] }
+      ]
+    },
+    {
+      "id": "ffmpeg", "category": "dev", "summary": "音视频处理",
+      "names": { "linux": "ffmpeg", "macos": "ffmpeg", "freebsd": "ffmpeg", "windows": "ffmpeg", "windows_cmd": "ffmpeg" },
+      "universal": true,
+      "flags": [],
+      "recipes": [
+        { "desc": "抽帧", "status": "equivalent",
+          "linux": "ffmpeg -i in.mp4 -vf select='eq(n,30)' -vsync vfr frame_%d.png",
+          "macos": "ffmpeg -i in.mp4 -vf select='eq(n,30)' -vsync vfr frame_%d.png",
+          "freebsd": "ffmpeg -i in.mp4 -vf select='eq(n,30)' -vsync vfr frame_%d.png",
+          "windows": "ffmpeg -i in.mp4 -vf select='eq(n,30)' -vsync vfr frame_%d.png", "windows_cmd": "ffmpeg -i in.mp4 -vf select='eq(n,30)' -vsync vfr frame_%d.png",
+          "caveats": ["引号内的单引号在 cmd.exe 需改双引号；输出路径反斜杠"] }
+      ]
+    },
+    {
+      "id": "scoop", "category": "pkg", "summary": "Windows 包管理器（对应 brew/apt）",
+      "names": { "linux": "apt", "macos": "brew", "freebsd": "pkg", "windows": "scoop", "windows_cmd": "scoop" },
+      "flags": [
+        { "semantic": "搜索包", "linux": "apt search name", "macos": "brew search name", "freebsd": "pkg search name", "windows": "scoop search name", "windows_cmd": "scoop search name" },
+        { "semantic": "安装包", "linux": "apt install name", "macos": "brew install name", "freebsd": "pkg install name", "windows": "scoop install name", "windows_cmd": "scoop install name" }
+      ],
+      "recipes": []
+    },
+    {
+      "id": "code", "category": "dev", "summary": "VS Code 命令行",
+      "names": { "linux": "code", "macos": "code", "freebsd": "", "windows": "code", "windows_cmd": "code" },
+      "universal": true,
+      "flags": [],
+      "recipes": [
+        { "desc": "打开目录/文件", "status": "approximate",
+          "linux": "code .", "macos": "code .", "freebsd": "", "windows": "code .", "windows_cmd": "code .",
+          "caveats": ["macOS 默认不装 code 命令，需在 VS Code 里 Cmd+Shift+P 执行 Shell Command: Install 'code' command in PATH"] }
+      ]
     }
   ]
 }

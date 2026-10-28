@@ -2,6 +2,44 @@
 
 版本按"映射库能力"走，不追求语义化版本的严格性：加数据是小版本，改契约是大版本。
 
+## 0.4.0 — 2026-10-28
+
+**路径映射诚实化（修掉"看着对、跑不通"的静默错误）**
+
+- **recipe 分支补上路径转换**：此前 recipe 命中的结果只做"示例值 → 实际值"字面替换，
+  用户传入的绝对路径会被原样塞进输出。`cat /etc/hosts` 曾翻译成
+  `Get-Content /etc/hosts` 且状态标 `equivalent`（Windows 上必然失败）。
+  现在 recipe 结果会再过一次路径转换，状态如实降级为 `approximate`。
+- **新增不变量**：出现无法等价映射的 POSIX 绝对路径时，状态**不允许**是 `equivalent`。
+- **`/var` 与 `/var/log` 补入映射表**：`/var/log` → `C:\Windows\System32\winevt\Logs`，
+  `/var` → `C:\ProgramData`；此前会硬拼成不存在的 `C:\var\log`。
+- **映射表改最长前缀优先**：原按字典插入顺序匹配，`/var` 会先于 `/var/log` 命中。
+- **`env` 前缀不再被当作命令头**：`env python3` 曾翻译成 `Get-ChildItem python3`
+  （把 `env` 当成"列出环境变量"）。现在按前缀剥离并给出明示 caveat。
+
+**槽位匹配收紧（防止 recipe 吞掉真实参数）**
+
+- 纯数字不再当路径/槽位：`tail -n 20` 的 `20` 不会被吞成示例槽位。
+- 格式符（`%s` / `%Y` / `%z`）绝不当槽位：`stat -c %Y` 不会被 `stat -c %s` 的 recipe 吃掉。
+- `.` / `./` / `..` 只在完全相同时才命中：`du -sh .` 的 `.` 不再吞掉 `/var/log`。
+- `retranslate_paths_in` 只处理"整个 token 是路径"且至少两级的情况，
+  避免把 `du -sh .` 输出里 `.Sum / 1MB` 的除号 `/` 误当成根目录。
+
+**数据补充**
+
+- `env`：新增"用 env 执行另一条命令"recipe（`/usr/bin/env python3` 这类 shebang 形式）。
+- `du`：新增"指定目录总占用""指定文件大小"两条 recipe，此前 `du -sh <dir>` 直接 unsupported。
+
+**测试**
+
+- 45 → 58 项。新增的用例覆盖上述每个缺陷，其中一条把旧测试里
+  "绝对路径不应被转换"的错误契约翻正（旧断言等于把 bug 写成了规范）。
+
+**工程**
+
+- 全仓库换行符统一为 LF（`install.sh` 等此前为 CRLF，在 Linux 上无法执行）。
+- 移除一次性调试脚本 `_dbg.py` / `_patch.py`。
+
 ## 0.3.0 — 2026-10-19
 
 **FreeBSD 平台**

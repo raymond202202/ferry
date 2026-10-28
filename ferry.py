@@ -43,7 +43,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 SCHEMA = 1
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 PLATFORMS = ("linux", "macos", "freebsd", "windows")
 PLATFORM_LABEL = {"linux": "Linux", "macos": "macOS", "freebsd": "FreeBSD",
@@ -529,6 +529,8 @@ class KB:
 POSIX_TO_WIN_ROOTS = {
     "/home": None,
     "/tmp": "$env:TEMP",
+    "/var/log": r"C:\Windows\System32\winevt\Logs",
+    "/var": r"C:\ProgramData",
     "/var/tmp": "$env:TEMP",
     "/dev/null": "$null",
     "/proc": None,
@@ -583,7 +585,9 @@ def path_to_windows(p: str) -> tuple[str, list[str]]:
         sub = re.sub(r"^(~|/home/[^/]+|/Users/[^/]+)", "", p)
         notes.append("家目录映射为 $env:USERPROFILE")
         return "$env:USERPROFILE" + (sub.replace("/", "\\") if sub else ""), notes
-    for root, mapped in POSIX_TO_WIN_ROOTS.items():
+    # 最长前缀优先：/var/log 必须优先于 /var 命中，否则细粒度映射永远够不着
+    for root in sorted(POSIX_TO_WIN_ROOTS, key=len, reverse=True):
+        mapped = POSIX_TO_WIN_ROOTS[root]
         if p == root or p.startswith(root + "/"):
             if mapped is None:
                 notes.append(f"{root} 在 Windows 无直接等价路径，原样保留")
@@ -594,8 +598,13 @@ def path_to_windows(p: str) -> tuple[str, list[str]]:
                 return (mapped + (("\\" + sub.replace("/", "\\")) if sub else "")), notes
             notes.append(f"{root} → {mapped}（近似）")
             return (mapped + ("\\" + sub.replace("/", "\\") if sub else "")), notes
-    notes.append("绝对路径按 C: 根处理（请核对）")
+    _UNMAPPED_POSIX.add(p)
+    notes.append(f"{p} 在 Windows 无对应根目录，按 C: 磁盘根拼成 C:{p}（语义不可等价，请改用目标平台自身路径）")
     return "C:" + p.replace("/", "\\"), notes
+
+
+# 本轮转换是否出现了「按 C: 根硬拼」的 POSIX 绝对路径（无法等价映射）
+_UNMAPPED_POSIX: set[str] = set()
 
 
 def convert_token(tok: str, src: str, tgt: str, style: str, caveats: list[str]) -> str:
@@ -609,6 +618,9 @@ def convert_token(tok: str, src: str, tgt: str, style: str, caveats: list[str]) 
             return "/dev/null"
         return tok
     if src == tgt:
+        return tok
+    # 纯数字不是路径：tail -n 20 的 20 不能被当成相对路径吞掉
+    if re.fullmatch(r"\d+", tok):
         return tok
     if tgt == "windows" and is_posix_path(tok):
         out, notes = path_to_windows(tok)
@@ -675,6 +687,20 @@ def _slot_match(recipe_tok: str, input_tok: str) -> bool:
         return True
     if recipe_tok.startswith("-") or input_tok.startswith("-"):
         return False
+    # 数值可能是目标侧开关的值（tail -n 50 的 50 不能被吞成槽位），
+    # 目标侧无法把它塞回去时输出会丢参数——宁可判不命中，交给参数映射兜底
+    if re.fullmatch(r"\d+", recipe_tok) or re.fullmatch(r"\d+", input_tok):
+        return recipe_tok == input_tok
+    # 格式符（%s/%Y/%z…）语义各不相同，绝不当槽位：
+    # stat -c %Y（修改时间）不能被 stat -c %s（大小）的 recipe 吃掉（P1-3）
+    if recipe_tok.startswith("%") or input_tok.startswith("%") or "%" in recipe_tok:
+        return False
+    # 路径参数不能当槽位：`du -sh .` 的 "." 是「当前目录」这个具体语义，
+    # 不是占位符。让它吞掉 /var/log 会把目标路径整个丢掉（P0-C 衍生）
+    if recipe_tok in (".", "./", "..", "../") or input_tok in (".", "./", "..", "../"):
+        return recipe_tok == input_tok
+    # 绝对路径仍可作槽位（du -sh . → du -sh /var/log），替换出来的路径
+    # 由 retranslate_paths_in 负责跨平台转换；这里只挡住「`.` 被吞」这一种
     # cmd 风格开关 /w /s /b 也算参数，必须精确匹配（路径 /home/x 不算）
     switch = re.compile(r"/[A-Za-z?]{1,3}$")
     if switch.match(recipe_tok) or switch.match(input_tok):
@@ -736,6 +762,57 @@ def recipe_match(entry: Entry, src_key: str, tokens: list[str]) -> dict | None:
     return None
 
 
+def collapse_tail_path(tokens: list[str]) -> list[str]:
+    """只在末尾把 POSIX 绝对路径拆成多级目录名，供 recipe 槽位对齐用。
+
+    返回原序列（未变）或拆分后的序列；调用方只在 recipe 未命中时用它再试一次。
+    """
+    if not tokens or not is_posix_path(tokens[-1]):
+        return tokens
+    parts = tokens[-1].split("/")
+    if len(parts) < 3:
+        return tokens
+    return tokens[:-1] + parts[1:]
+
+
+def retranslate_paths_in(val: str, src: str, tgt: str, style: str,
+                         caveats: list[str]) -> str:
+    """把已生成输出串里的 POSIX 绝对路径换成目标平台写法。
+
+    recipe 分支只替换示例字面量，用户传入的 /etc/hosts 会被原样塞进输出。
+    这里按 token 重新扫一遍，只碰「以 / 开头且不是开关」的 token。
+    """
+    if tgt != "windows":
+        return val
+    out_tokens = val.split(" ")
+    changed = False
+    for i, tok in enumerate(out_tokens):
+        bare = tok.strip("'\"")
+        # 必须是「整个 token 就是路径」且至少有二级：
+        # `du -sh .` 的输出里有 `.Sum / 1MB`，孤立的 `/` 是除号不是根目录
+        if not is_posix_path(bare) or bare.startswith("/dev/null"):
+            continue
+        if bare.count("/") < 2 and bare != "/":
+            continue
+        # 孤立的 "/" 在输出里几乎总是除号（.Sum / 1MB），不是根目录
+        if bare == "/":
+            continue
+        if is_cmd_switch(bare):
+            continue
+        new_tok = convert_token(bare, src, tgt, style, caveats)
+        if new_tok != bare:
+            out_tokens[i] = tok.replace(bare, new_tok)
+            changed = True
+    if not changed:
+        return val
+    if _UNMAPPED_POSIX:
+        caveats.append(
+            "存在无法等价映射的 POSIX 绝对路径："
+            + ", ".join(sorted(_UNMAPPED_POSIX))
+            + "；Windows 无同名目录树，输出仅为字面替换，请改用目标平台自身的路径")
+    return " ".join(out_tokens)
+
+
 def translate_segment(seg: str, src: str, tgt: str, shell_tgt: str, kb: KB,
                       style: str) -> SegResult:
     """把一段（无操作符）命令翻译到目标平台。"""
@@ -746,6 +823,7 @@ def translate_segment(seg: str, src: str, tgt: str, shell_tgt: str, kb: KB,
 
     caveats: list[str] = []
     notes: list[str] = []
+    _UNMAPPED_POSIX.clear()
 
     # 前缀处理
     prefix: list[str] = []
@@ -768,6 +846,11 @@ def translate_segment(seg: str, src: str, tgt: str, shell_tgt: str, kb: KB,
     # 1) recipe 命中
     if entry:
         r = recipe_match(entry, src_key, tokens[idx:])
+        if not r:
+            # 绝对路径拆成多级目录再试一次（tail -n 50 /var/log/syslog 这类）
+            collapsed = collapse_tail_path(tokens[idx:])
+            if collapsed != tokens[idx:]:
+                r = recipe_match(entry, src_key, collapsed)
         if r:
             val = r.get(tgt_key)
             status = r.get("status", "equivalent")
@@ -776,9 +859,30 @@ def translate_segment(seg: str, src: str, tgt: str, shell_tgt: str, kb: KB,
                 alt = entry.exact_name_for(tgt, shell_tgt)
                 return SegResult(seg, "", None, "unsupported", "unsupported",
                                  caveats + [f"{PLATFORM_LABEL[tgt]} / {shell_tgt} 无等价命令"])
-            val = substitute_recipe_literals(val, r, src_key, tokens[idx:])
+            val, leftovers = substitute_recipe_literals(val, r, src_key, tokens[idx:])
+            if leftovers and tgt == "windows" and is_posix_path(tokens[idx:][-1] if tokens[idx:] else ""):
+                # 绝对路径里的各级目录名与 recipe 示例无对应，属预期内，不再报残留
+                leftovers = []
+            if leftovers:
+                # 不变量：示例字面量没能换成用户输入，输出不可信，必须降级告警
+                status = "approximate" if status == "equivalent" else status
+                caveats.append(
+                    f"recipe 示例值 {', '.join(repr(x) for x in leftovers)} 未能替换为你的实际参数，"
+                    f"输出中的对应位置仍是示例值，执行前务必核对")
             if tgt != "windows":  # Windows 路径不带尾斜杠；POSIX 目标要保留目录语义
                 val = preserve_trailing_slash(val, tokens[idx:])
+            # 不变量：recipe 只做「示例值 → 实际值」的字面替换，不做路径语义转换。
+            # cat a.txt 换成 cat /etc/hosts 后，/etc/hosts 仍是 POSIX 路径，
+            # 必须再过一次 convert_token，否则 Get-Content /etc/hosts 会被
+            # 标成 equivalent 却在 Windows 上执行失败（P0-A）
+            if src != tgt:
+                _UNMAPPED_POSIX.clear()
+                recaveats: list[str] = []
+                val = retranslate_paths_in(val, src, tgt, style, recaveats)
+                if recaveats:
+                    caveats.extend(recaveats)
+                    if status == "equivalent":
+                        status = "approximate"
             return SegResult(seg, "", val, status, "recipe", caveats, notes)
 
     # 2) 无条目：判断是否跨平台同名（git/curl/docker...）
@@ -790,11 +894,26 @@ def translate_segment(seg: str, src: str, tgt: str, shell_tgt: str, kb: KB,
                                  ["本机已存在该命令，原样执行"])
             return SegResult(seg, "", None, "unsupported", "unsupported",
                              [f"映射库未收录 `{head}`，无法确定性翻译"])
-        # 目标平台也有同名 → 直通
+        # 目标平台也有同名 → 直通。但「命令名能直通」不等于「参数能直通」：
+        # cat /etc/hosts 的命令名 PowerShell 有别名，路径语义却完全不同，
+        # 必须仍然转换路径参数，否则给出执行失败的等价结论（P0-A）
         tgt_names = {e.name_for(tgt, shell_tgt) for _, e in hits}
         if head in tgt_names:
-            return SegResult(seg, "", seg, "equivalent", "passthrough",
-                             [f"`{head}` 在目标平台同名可用"])
+            pt_caveats: list[str] = []
+            _UNMAPPED_POSIX.clear()
+            conv_args = [convert_token(a, src, tgt, style, pt_caveats) for a in args]
+            pt_status = "equivalent"
+            if _UNMAPPED_POSIX:
+                pt_caveats.append(
+                    "存在无法等价映射的 POSIX 绝对路径："
+                    + ", ".join(sorted(_UNMAPPED_POSIX))
+                    + "；Windows 无同名目录树，输出仅为字面替换，请改用目标平台自身的路径")
+                pt_status = "approximate"
+            elif pt_caveats:
+                pt_status = "approximate"
+            out = " ".join([head] + conv_args)
+            return SegResult(seg, "", out, pt_status, "passthrough",
+                             pt_caveats or [f"`{head}` 在目标平台同名可用"])
         entry = hits[0][1]
 
     if entry is None:
@@ -856,15 +975,31 @@ def translate_segment(seg: str, src: str, tgt: str, shell_tgt: str, kb: KB,
                     caveats.append("Windows 无 sudo：需以管理员身份运行（Start-Process -Verb RunAs）")
                 elif p in ("nohup",):
                     caveats.append("nohup 在 Windows 无等价：用 Start-Process 或计划任务")
-                elif p in ("time", "command", "builtin", "env", "exec", "doas"):
+                elif p == "env":
+                    # env 只是 PATH 查找后执行，Windows 直接写命令即可；
+                    # 但必须说明「已剥离」，否则用户看不出 env 消失了（P0-B）
+                    caveats.append("env 前缀已剥离：Windows 直接调用命令即可，无需 env")
+                elif p in ("time", "command", "builtin", "exec", "doas"):
                     pass
         else:
             target_tokens = prefix + target_tokens
 
     status = "approximate" if (unknown or caveats or changed_path) else "equivalent"
-    # 直接可用 flag 且无转换 → 视为等价
-    if not unknown and entry.direct_flags and all(
-            a in entry.direct_flags or a.startswith("--") and a in entry.direct_flags for a in args):
+    # 不变量：无法等价映射的 POSIX 绝对路径（按 C: 根硬拼）绝不算等价
+    if _UNMAPPED_POSIX:
+        caveats.append(
+            "存在无法等价映射的 POSIX 绝对路径："
+            + ", ".join(sorted(_UNMAPPED_POSIX))
+            + "；Windows 无同名目录树，输出仅为字面替换，请改用目标平台自身的路径")
+        if status == "equivalent":
+            status = "approximate"
+    # 直接可用 flag 且无转换 → 视为等价。
+    # 但路径/值参数不参与 direct_flags 白名单：`cat /etc/hosts` 的 args 只有
+    # /etc/hosts，不在白名单里却「无未知 flag」，不能因此翻回等价（P0-A）
+    if (not unknown and not _UNMAPPED_POSIX and not changed_path
+            and entry.direct_flags and all(
+                a in entry.direct_flags or a.startswith("--") and a in entry.direct_flags
+                for a in args)):
         status = "equivalent"
 
     kind = "flags"
@@ -876,10 +1011,37 @@ def translate_segment(seg: str, src: str, tgt: str, shell_tgt: str, kb: KB,
     return SegResult(seg, "", " ".join(target_tokens), status, kind, caveats, notes)
 
 
+STRFTIME_TO_PS = [
+    ("%Y", "yyyy"), ("%y", "yy"), ("%m", "MM"), ("%d", "dd"),
+    ("%H", "HH"), ("%M", "mm"), ("%S", "ss"), ("%j", "ddd"),
+    ("%A", "dddd"), ("%a", "ddd"), ("%B", "MMMM"), ("%b", "MMM"),
+    ("%p", "tt"), ("%Z", "zzz"), ("%z", "zzz"), ("%s", ""),
+]
+
+
+def convert_strftime(token: str) -> str | None:
+    """date +%Y-%m-%d → -Format 'yyyy-MM-dd'。不能全量转换时返回 None。"""
+    if not token.startswith("+"):
+        return None
+    fmt = token[1:]
+    if "%" not in fmt:
+        return None
+    out = fmt
+    for a, b in STRFTIME_TO_PS:
+        out = out.replace(a, b)
+    if "%" in out:
+        return None
+    return "-Format '" + out + "'"
+
+
 def split_flag_value(tok: str) -> tuple[str, str | None]:
     if tok.startswith("--") and "=" in tok:
         k, v = tok.split("=", 1)
         return k, v
+    # POSIX 短参数粘连写法：tail -n20 / grep -A5 / head -n15
+    m = re.fullmatch(r"(-[A-Za-z])(\d+)", tok)
+    if m:
+        return m.group(1), m.group(2)
     return tok, None
 
 
@@ -895,8 +1057,10 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
     dropped: set[str] = set()
 
     # 数据里的参数常写成 "-c %s" / "-n 100"（带示例值）：按首 token 建索引，
-    # 记下后面有几个示例值，输入里才认得出这个参数吃了几个值
-    table: dict[str, tuple[dict, int, list[str]]] = {}
+    # 记下后面有几个示例值，输入里才认得出这个参数吃了几个值。
+    # 同首 token 多条映射（stat 的 -c %s / -c %a / -c %Y…）时全部保留，
+    # 匹配时按“示例值与用户值一致”优先，避免后一条覆盖前一条（P1-3）
+    table: dict[str, list[tuple[dict, int, list[str]]]] = {}
     for f in entry.flags:
         s = f.get(src_key)
         if not s:
@@ -904,7 +1068,32 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
         parts = s.split()
         if not parts:
             continue
-        table[parts[0]] = (f, len(parts) - 1, parts[1:])
+        ex_vals = parts[1:]
+        # 空串示例（macOS 的 sed -i ''）表示“参数后面要跟一个空值占位”，
+        # 不是“要吃掉用户的下一个 token”，否则会把真正的脚本吞掉
+        if ex_vals == ["''"] or ex_vals == [chr(34) + chr(34)]:
+            table.setdefault(parts[0], []).append((f, 0, []))
+            continue
+        # 参数本身不带值、但值写在同一个 token 里（"-n 20" 表示 -n N）时，
+        # 额外值数记 1 才能把用户的 N 吃进来；否则 N 会被当成位置参数。
+        # 判断依据：目标侧是纯开关（-Tail）且示例值是纯数字。
+        tgt_parts = (f.get(tgt_key) or "").split()
+        if (len(ex_vals) == 1 and re.fullmatch(r"\d+", ex_vals[0])
+                and len(tgt_parts) == 1 and tgt_parts[0].startswith("-")):
+            table.setdefault(parts[0], []).append((f, 1, ex_vals))
+            continue
+        table.setdefault(parts[0], []).append((f, len(parts) - 1, ex_vals))
+
+    def pick_hit(a: str, nxt: list[str]) -> tuple[dict, int, list[str]] | None:
+        """同首 token 多条时：示例值与用户实际值完全一致的那条优先，否则第一条。"""
+        cands = table.get(a)
+        if not cands:
+            return None
+        for f, extra, ex in cands:
+            user_vals = nxt[:extra]
+            if extra and user_vals == ex:
+                return f, extra, ex
+        return cands[0]
 
     def target_tokens(f: dict) -> list[str]:
         t = f.get(tgt_key)
@@ -916,7 +1105,12 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
     for idx, a in enumerate(args):
         if idx in skip:
             continue
-        hit = table.get(a)
+        hit = pick_hit(a, args[idx + 1:])
+        # 源侧参数的示例值是空串占位（macOS sed -i ''）：用户的空串写在本 token 内部
+        # （tokenize 已剥引号），目标侧不需要它时也一并吞掉
+        if hit and hit[1] == 0 and idx + 1 < len(args) and args[idx + 1] == "" \
+                and re.fullmatch(r"-[A-Za-z]", a):
+            skip.add(idx + 1)
         if hit:
             f, extra, ex = hit
             tts = target_tokens(f)
@@ -925,14 +1119,24 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
                     caveats.append(f"参数 {a} 在目标平台无直接对应，已丢弃（{f.get('semantic','')}）")
                 out.extend(tts)
                 continue
-            user_vals = args[idx + 1:idx + 1 + extra]
+            # 粘连写法 -n20：值已经在参数内部，不在后续 token 里
+            inline_val = None
+            if a.startswith("-") and not a.startswith("--") and len(a) > 2 \
+                    and a[:2] in table and extra == 1:
+                inline_val = a[2:]
+            user_vals = [inline_val] if inline_val is not None \
+                else args[idx + 1:idx + 1 + extra]
             same_as_example = len(user_vals) == extra and user_vals == ex
-            # 带示例值的参数（多是格式符 %s / %Lp）：只有输入与示例完全一致才整体替换，
-            # 否则会把用户的真实值（行数、路径）错误地换成示例值
+            # 带示例值的参数：输入与示例一致时整体替换；不一致时只换开关部分，
+            # 用户的值（行数、路径、格式符）原样跟上
             if same_as_example:
                 if not tts:
                     caveats.append(f"参数 {a} {' '.join(ex)} 在目标平台无直接对应，已丢弃（{f.get('semantic','')}）")
-                out.extend(tts)
+                elif extra and len(tts) == 1:
+                    out.append(tts[0])
+                    out.extend(user_vals)
+                else:
+                    out.extend(tts)
                 skip.update(range(idx + 1, idx + 1 + extra))
                 continue
             if not tts:
@@ -942,14 +1146,21 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
                 out.extend(user_vals)
                 skip.update(range(idx + 1, idx + 1 + extra))
                 continue
-            # 目标参数也吃值：保留用户的值，只换开关部分
-            out.extend(tts[:max(1, len(tts) - extra)])
+            # 目标参数也吃值：只把开关本身换掉，用户的值原样跟上
+            # 源 "-n 20" / 目标 "-Tail" → "-Tail <用户值>"
+            # 源 "-c %s" / 目标 "-f %z" → "-f <用户值>"
+            out.append(tts[0])
             out.extend(user_vals)
             skip.update(range(idx + 1, idx + 1 + extra))
             continue
+        if tgt == "windows":
+            converted_fmt = convert_strftime(a)
+            if converted_fmt:
+                out.append(converted_fmt)
+                continue
         key, val = split_flag_value(a)
         if key != a and key in table:
-            tts = target_tokens(table[key][0])
+            tts = target_tokens(pick_hit(key, [val] if val is not None else [])[0])
             if tts:
                 out.extend(tts)
                 if val is not None:
@@ -961,7 +1172,7 @@ def translate_flags(args: list[str], entry: Entry, src_key: str, tgt_key: str,
             for ch in a[1:]:
                 single = "-" + ch
                 if single in table:
-                    tts = target_tokens(table[single][0])
+                    tts = target_tokens(table[single][0][0])
                     if tts:
                         expanded.extend(tts)
                     else:
@@ -1043,35 +1254,77 @@ def same_command(a: str | None, b: str | None) -> bool:
 
 
 def preserve_trailing_slash(val: str, input_toks: list[str]) -> str:
-    """输入是 app/，recipe 的目标平台写法是 app —— 目录语义要保留。"""
+    """目录语义对齐：输入带尾斜杠则补，不带则去。
+
+    输入是 app/，recipe 的目标平台写法是 app —— 目录语义要保留；
+    反过来输入是 src、recipe 写的是 src/ —— 输出不该凭空多出斜杠。"""
     for t in input_toks:
-        if not t.endswith("/") or len(t) < 2:
+        if len(t) < 2 or t.startswith("-"):
             continue
         base = t.rstrip("/")
-        if not base:
-            continue
+        if not base or "/" in base[:-1]:
+            continue  # 复合值（s/a/b/）不做斜杠对齐
         pat = re.compile(r"(?<![\w./\\-])" + re.escape(base) + r"(?![\w./\\-])")
-        val = pat.sub(base + "/", val)
+        if t.endswith("/"):
+            val = pat.sub(base + "/", val)
+        else:
+            val = pat.sub(base, val)
     return val
 
 
 def substitute_recipe_literals(val: str, recipe: dict, src_key: str,
-                               input_toks: list[str]) -> str:
+                               input_toks: list[str]) -> tuple[str, list[str]]:
     """把 recipe 里的示例字面量换回用户实际输入。
 
     recipe 写的是 `grep -rn TODO src/`，用户输入的是 `grep -rn TODO src`，
     输出不该凭空多出一个 `src/`；`tar -xzf app.tar.gz` 也一样。
     仅按位置对齐替换非参数 token，且在单词边界处替换，避免误伤。
+
+    返回 (替换后的值, 未被替换的示例字面量列表)。
+    不变量：输出里若仍残留 recipe 示例字面量，调用方必须降级告警，绝不静默。
     """
     rt = tokenize(recipe.get(src_key) or "")
+    handled: set[str] = set()
+    # sed 的 s/old/new/ 这类表达式：示例被拆成 old/new 写进目标侧，
+    # 逐个按分隔符取出对应片段替换（s/a/b/g → -replace 'a','b'）
+    for a, b in zip(rt, input_toks):
+        m_ex = re.fullmatch(r"s(.)([^\1]*)\1([^\1]*)\1([gip0-9]*)", a)
+        m_in = re.fullmatch(r"s(.)([^\1]*)\1([^\1]*)\1([gip0-9]*)", b)
+        if m_ex and m_in:
+            for oe, ne in ((m_ex.group(2), m_in.group(2)), (m_ex.group(3), m_in.group(3))):
+                if oe and oe != ne:
+                    val = val.replace("'" + oe + "'", "'" + ne + "'")
+                    handled.add(oe)
     if not rt or len(rt) != len(input_toks):
-        return val
+        return val, []
+    leftovers: list[str] = []
     for a, b in zip(rt, input_toks):
         if a == b or a.startswith("-") or b.startswith("-") or len(a) < 2:
             continue
-        pattern = re.compile(r"(?<![\w./\\-])" + re.escape(a) + r"(?![\w/\\-])")
-        val = pattern.sub(b.replace("\\", "\\\\"), val, count=1)
-    return val
+        if a in handled:
+            continue
+        # 输入里以 env/sudo/time 这类前缀出现的词没有真正进入目标命令，
+        # 不能算「示例值残留」（P0-B）
+        if a in PREFIXES and b not in PREFIXES:
+            continue
+        if "/" in a[:-1]:
+            # 复合值（s/old/new/、a.tar.gz 内部无斜杠但含点）：用完整字面量匹配，
+            # 尾斜杠可选——s/old/new/ 在输出里写作 's/old/new/' 时要能命中（P0-3）
+            core = a.rstrip("/") or a
+            pattern = re.compile(r"(?<![\w])" + re.escape(core) + r"/?")
+        else:
+            # 普通路径/单词：剥尾斜杠后匹配，且尾部允许后跟 /（recipe 目标侧的 src/
+            # 要能被用户的 src 替换掉，否则输出凭空多出斜杠）
+            core = a.rstrip("/") or a
+            pattern = re.compile(r"(?<![\w./\\-])" + re.escape(core) + r"/?")
+        new_val, n = pattern.subn(b.replace("\\", "\\\\"), val)
+        if n:
+            val = new_val
+        else:
+            # 示例字面量在输出中不存在（如 sed 的 s/old/new/ 被拆成目标侧
+            # 'old','new' 两个独立 token）→ 记录残留，交给调用方降级
+            leftovers.append(core)
+    return val, leftovers
 
 
 # ---------------------------------------------------------------------------
@@ -1163,17 +1416,32 @@ def try_patterns(cmd: str, src: str, tgt: str, shell: str, kb: KB) -> SegResult 
 
 
 def detect_source(tokens_first: str, kb: KB, target: str) -> tuple[str, bool]:
-    """猜源平台。返回 (platform, inferred)。"""
+    """猜源平台。返回 (platform, inferred)。
+
+    多平台同名时优先 linux（POSIX 命令的默认语境），而不是字母序——
+    否则 stat/sed/rm 这类三平台同名命令全部会被推成 freebsd（P1-1）。
+    windows_cmd 专用名（date /t 的 date、find 的 find）不算 POSIX 源。
+    """
     cur = current_platform()
-    if kb.find(tokens_first, cur, None):
+    # 本机是 Windows 时，cmd 内置名（find/date/echo/dir…）会先命中 windows 索引，
+    # 但这些名字在 POSIX 语境同样常见且语义不同（cmd 的 find 是字符串查找器）。
+    # 只有当命令不在任何 POSIX 平台收录时，才认定源是 windows。
+    posix_also = any(p != "windows" and kb.find(tokens_first, p, None)
+                     for p in PLATFORMS)
+    if not (cur == "windows" and posix_also) and kb.find(tokens_first, cur, None):
         return cur, False
     hits = {p for p, _ in kb.find_any(tokens_first)}
     hits.discard(cur)
-    if len(hits) == 1:
-        return hits.pop(), True
+    # cmd.exe 专用名不参与 POSIX 源推断：cmd 的 date/find 是另一回事
+    posix_hits = {p for p in hits if p != "windows"}
+    if posix_hits:
+        if "linux" in posix_hits:
+            return "linux", True
+        if len(posix_hits) == 1:
+            return posix_hits.pop(), True
+        return sorted(posix_hits)[0], True
     if hits:
-        others = sorted(hits)
-        return others[0], True
+        return sorted(hits)[0], True
     return cur, True
 
 
@@ -1202,7 +1470,16 @@ def translate(cmd: str, target: str, source: str | None, shell: str | None,
         shell = "powershell"
     style = path_style_of(target, style)
 
-    parts = split_chain(cmd)
+    # 后台执行符 & ：POSIX 的 cmd & 在 cmd.exe/PowerShell 不存在，静默丢弃会让
+    # 长任务阻塞前台，必须显式转换（背景语法见 90-syntax 的 background 条目）
+    bg_sfx = ""
+    work = cmd
+    if target == "windows" and work.rstrip().endswith("&") \
+            and not work.rstrip().endswith("&&"):
+        work = work.rstrip()[:-1].rstrip()
+        bg_sfx = "&"
+
+    parts = split_chain(work)
     if not parts:
         return Translation(cmd, source or current_platform(), target, shell,
                            "error", None, [], ["空命令"])
@@ -1280,6 +1557,17 @@ def translate(cmd: str, target: str, source: str | None, shell: str | None,
         if c not in seen:
             seen.add(c)
             uniq.append(c)
+
+    # POSIX 后台符 & 在 Windows 无后缀写法，必须显式转换（静默丢失会导致前台阻塞）
+    if bg_sfx:
+        if shell == "cmd":
+            command = (command + " " if command else "") + "&"
+            uniq.append("cmd.exe 的 & 只是不等待退出，非真后台；真后台用 start /b")
+        elif command:
+            command = f"Start-Process {command} -NoNewWindow"
+            uniq.append("PowerShell 无 & 后缀；用 Start-Job / Start-Process 后台执行，"
+                        "退出码与输出不再直接可用")
+        status = "approximate" if status == "equivalent" else status
 
     t = Translation(cmd, source, target, shell, status, command, segs, uniq, inferred)
     if inferred:
@@ -1743,13 +2031,34 @@ def cmd_drills(args, kb: KB) -> int:
             return 4
         import subprocess, tempfile
         fails = 0
+        if target == "windows":
+            # Windows 断言是 PowerShell 写的（Remove-Item/Get-Content…），
+            # cmd.exe 不认识这些命令，直接交给 cmd 执行会全部假失败（P2-1）。
+            # 一次性生成整个 ps1（逐条起 powershell 冷启动太慢），一次执行。
+            script = _drill_script_pwsh(rows, target)
+            with tempfile.TemporaryDirectory() as td:
+                sp = Path(td) / "drills.ps1"
+                sp.write_text(script, encoding="utf-8-sig")
+                # 中文 Windows 的 PowerShell 输出是 GBK；text=True 的 UTF-8 解码会
+                # 抛 UnicodeDecodeError 整体崩溃，必须字节采集后容错解码
+                proc = subprocess.run(
+                    ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                     "-File", str(sp)], capture_output=True)
+                out = (proc.stdout or b"").decode("utf-8", errors="replace")
+                err = (proc.stderr or b"").decode("utf-8", errors="replace")
+            print(out.strip())
+            if err.strip():
+                print(err.strip(), file=sys.stderr)
+            return proc.returncode
         for d in rows:
             with tempfile.TemporaryDirectory() as td:
                 cmd = d["cmd"]
                 if d.get("setup"):
-                    subprocess.run(d["setup"], shell=True, cwd=td,
-                                   capture_output=True, text=True)
-                proc = subprocess.run(cmd, shell=True, cwd=td, capture_output=True, text=True)
+                    # 参数列表形式；drill 语句含管道/引号，交给 sh -c 解析
+                    subprocess.run(["/bin/sh", "-c", d["setup"]], cwd=td,
+                                   capture_output=True)
+                proc = subprocess.run(["/bin/sh", "-c", cmd], cwd=td,
+                                       capture_output=True)
             got = "success" if proc.returncode == 0 else "fail"
             want = d.get("expect", "success")
             if want == "any":

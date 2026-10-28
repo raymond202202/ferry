@@ -41,9 +41,9 @@
       "id": "head",
       "category": "text",
       "summary": "取开头若干行",
-      "names": { "linux": "head", "macos": "head", "freebsd": "head", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "head", "macos": "head", "freebsd": "head", "windows": "Get-Content", "windows_cmd": "" },
       "flags": [
-        { "semantic": "前 N 行", "linux": "-n 20", "macos": "-n 20", "freebsd": "-n 20", "windows": "", "windows_cmd": "" }
+        { "semantic": "前 N 行", "linux": "-n 20", "macos": "-n 20", "freebsd": "-n 20", "windows": "-TotalCount", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "前 20 行", "status": "equivalent",
@@ -58,15 +58,19 @@
       "id": "tail",
       "category": "text",
       "summary": "取末尾若干行 / 跟踪日志",
-      "names": { "linux": "tail", "macos": "tail", "freebsd": "tail", "windows": "", "windows_cmd": "" },
+      "names": { "linux": "tail", "macos": "tail", "freebsd": "tail", "windows": "Get-Content", "windows_cmd": "" },
       "flags": [
-        { "semantic": "最后 N 行", "linux": "-n 20", "macos": "-n 20", "freebsd": "-n 20", "windows": "", "windows_cmd": "" },
-        { "semantic": "持续跟踪", "linux": "-f", "macos": "-f", "freebsd": "-f", "windows": "", "windows_cmd": "" }
+        { "semantic": "最后 N 行", "linux": "-n 20", "macos": "-n 20", "freebsd": "-n 20", "windows": "-Tail", "windows_cmd": "" },
+        { "semantic": "持续跟踪", "linux": "-f", "macos": "-f", "freebsd": "-f", "windows": "-Wait", "windows_cmd": "" }
       ],
       "recipes": [
-        { "desc": "最后 50 行", "status": "equivalent",
+        { "desc": "最后 N 行（带文件名）", "status": "equivalent",
           "linux": "tail -n 50 a.log", "macos": "tail -n 50 a.log", "freebsd": "tail -n 50 a.log",
           "windows": "Get-Content a.log -Tail 50" },
+        { "desc": "最后 N 行（读管道输入）", "status": "approximate",
+          "linux": "tail -n 50", "macos": "tail -n 50", "freebsd": "tail -n 50",
+          "windows": "Select-Object -Last 50",
+          "caveats": ["PowerShell 管道传对象而非文本，-Last 按对象计数；多行文本可能被算成一个对象"] },
         { "desc": "实时跟踪日志", "status": "equivalent",
           "linux": "tail -f a.log", "macos": "tail -f a.log", "freebsd": "tail -f a.log",
           "windows": "Get-Content a.log -Wait -Tail 20",
@@ -206,7 +210,7 @@
       "id": "wc",
       "category": "text",
       "summary": "统计行数/字数/字节",
-      "names": { "linux": "wc", "macos": "wc", "freebsd": "wc", "windows": "Measure-Object", "windows_cmd": "find" },
+      "names": { "linux": "wc", "macos": "wc", "freebsd": "wc", "windows": "Measure-Object", "windows_cmd": "find /c" },
       "flags": [
         { "semantic": "统计行数", "linux": "-l", "macos": "-l", "freebsd": "-l", "windows": "-Line", "windows_cmd": "/c" },
         { "semantic": "统计字符数", "linux": "-c", "macos": "-c", "freebsd": "-c", "windows": "-Character", "windows_cmd": "" },

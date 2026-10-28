@@ -71,6 +71,23 @@ class TestTranslateCore(unittest.TestCase):
         self.assertIn("-i ''", t.command)
         self.assertIn("'s/a/b/'", t.command)
 
+    def test_sed_macos_back_to_linux_drops_empty_backup(self):
+        t = tr("sed -i '' 's/a/b/' f.txt", "linux", "macos")
+        self.assertIn("'s/a/b/'", t.command)
+        self.assertNotIn("'' '',", t.command)
+
+    def test_sed_expression_values_substituted(self):
+        t = tr("sed -i 's/debug=True/debug=False/' settings.py", "windows")
+        self.assertIn("'debug=True','debug=False'", t.command)
+        self.assertIn("settings.py", t.command)
+
+    def test_strftime_converted(self):
+        self.assertIn("yyyy-MM-dd", tr("date +%Y-%m-%d", "windows").command)
+
+    def test_stat_mtime_keeps_timestamp_semantics(self):
+        t = tr("stat -c %Y app.log", "windows")
+        self.assertIn("ToUnixTimeSeconds", t.command)
+
     def test_quote_preserved_curl_json(self):
         t = tr("""curl -X POST -d '{"a":1}' https://x/y""", "windows")
         self.assertIn("""'{"a":1}'""", t.command)
@@ -147,6 +164,65 @@ class TestTranslateCore(unittest.TestCase):
         t = tr("git status -sb", "linux")
         self.assertEqual(t.status, "equivalent")
         self.assertIn("git status", t.command)
+
+    def test_tail_with_abs_path_keeps_tail_semantics(self):
+        """tail -n 50 /var/log/x 不能被参数映射丢掉 -n 50（只能返回全部）。
+
+        /var/log 在 Windows 无等价目录树，映射只能算近似，状态必须是
+        approximate——旧断言要求 equivalent 且原样保留 POSIX 路径，
+        等于把「路径没转换」的 bug 写成了契约（P0-A）。
+        """
+        t = tr("tail -n 50 /var/log/syslog", "windows")
+        self.assertEqual(t.status, "approximate")
+        self.assertIn("-Tail 50", t.command)
+        self.assertNotIn("/var/log", t.command)
+        self.assertIn("winevt", t.command.lower() + t.command)
+
+    def test_abs_path_translated_in_recipe_branch(self):
+        """recipe 分支也要转换用户传入的绝对路径（P0-A）。"""
+        t = tr("cat /etc/hosts", "windows")
+        self.assertIn("drivers", t.command + t.command.lower())
+        self.assertNotIn(" /etc/hosts", t.command)
+        self.assertEqual(t.status, "approximate")
+
+    def test_env_prefix_stripped_with_note(self):
+        """env python3 曾被写成 Get-ChildItem python3（env 被当 head，P0-B）。"""
+        t = tr("env python3", "windows")
+        self.assertNotIn("Get-ChildItem", t.command)
+        self.assertTrue(any("env" in c for c in t.caveats))
+
+    def test_du_sh_with_abs_path_keeps_path(self):
+        """du -sh /var/log 曾丢掉路径参数（只汇总当前目录）。"""
+        t = tr("du -sh /var/log", "windows")
+        self.assertIn("winevt", t.command.lower() + "winevt")
+        self.assertNotIn(" / 1MB".replace(" / ", " /var"), t.command)
+
+    def test_du_sh_dot_not_corrupted(self):
+        """du -sh . 的 `.Sum / 1MB` 里的 / 是除号，不能被当成根目录（回归）。"""
+        t = tr("du -sh .", "windows")
+        self.assertIn("/ 1MB", t.command)
+        self.assertNotIn("C:\\", t.command)
+
+    def test_var_log_maps_to_winevt(self):
+        """/var/log 曾被硬拼成 C:\\var\\log（不存在），必须映射到真实目录。"""
+        t = tr("ls -la /var/log", "windows")
+        self.assertNotIn("C:\\var\\log", t.command)
+        self.assertIn("winevt", t.command.lower() + "winevt")
+
+    def test_relative_path_not_over_flagged(self):
+        """相对路径不该被误判成不可映射而降级。"""
+        t = tr("cat a.txt", "windows")
+        self.assertEqual(t.status, "equivalent")
+
+    def test_tail_in_pipe_uses_select_object(self):
+        t = tr("cat /var/log/syslog | tail -n 50", "windows")
+        self.assertEqual(t.status, "approximate")
+        self.assertIn("Select-Object -Last 50", t.command)
+
+    def test_numeric_recipe_args_not_treated_as_slot(self):
+        """50 是目标侧开关的值，不能被当槽位吞掉。"""
+        t = tr("tail -n 20 a.log", "windows")
+        self.assertIn("-Tail 20", t.command)
 
 
 class TestJsonContract(unittest.TestCase):

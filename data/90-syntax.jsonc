@@ -137,6 +137,66 @@
   ],
   "pitfalls": [
     {
+      "id": "py-subprocess-encoding", "platforms": ["windows"],
+      "title": "Python subprocess 在中文 Windows 上采集输出必须容错解码",
+      "detail": "中文 Windows 控制台默认 GBK（cp936），subprocess.run(text=True) 用 UTF-8 解码会抛 UnicodeDecodeError 使程序崩溃；纯 ASCII 环境下恰好能过，纯靠环境巧合。实测：ferry 自身 drills 就因此崩过。",
+      "fix": "字节采集 + decode('utf-8', errors='replace')；或 subprocess.run(..., encoding='utf-8', errors='replace')。"
+    },
+    {
+      "id": "py-open-newline", "platforms": ["windows", "linux", "macos", "freebsd"],
+      "title": "open(...,'w') 换行符各平台不一致",
+      "detail": "文本模式写文件：Windows 默认写入 \\r\\n（会把 CR 混进 shell 脚本/JSON/配置），POSIX 是 \\n。生成跨平台要用的脚本文件时 CR 会导致 bash 报错 / JSON 校验失败。",
+      "fix": "生成给非 Windows 工具消费的文件时显式 newline=''（或 newline='\\n'）；通用场景读文本用 newline=None 自动归一化。"
+    },
+    {
+      "id": "py-python3-name", "platforms": ["windows"],
+      "title": "Windows 原生无 python3 命令",
+      "detail": "Linux/macOS 的 python3 在 Windows 原生是 python 或 py -3（py 启动器自动选已装版本）。python3 只在 Git Bash 环境碰巧可用，换 cmd/PowerShell/裸机器就失效。",
+      "fix": "Windows 上写 py -3 或 python；需要稳定时先 where python 探测，或 shutil.which('python3') or shutil.which('py') 自适配。"
+    },
+    {
+      "id": "py-tmp-path", "platforms": ["windows"],
+      "title": "/tmp/ 在 Windows 原生不存在",
+      "detail": "-o /tmp/x.js 这种写法只在 Git Bash（映射到用户临时目录）碰巧能用；cmd/PowerShell/裸 Windows 会写到磁盘根目录失败或创建 C:\\tmp（用户可能无权限）。",
+      "fix": "Python 内用 tempfile.gettempdir()；shell 里写 $TMPDIR（Git Bash）或 $env:TEMP（PowerShell）；或直接用工作目录相对路径。"
+    },
+    {
+      "id": "py-platform-modules", "platforms": ["linux", "macos", "freebsd", "windows"],
+      "title": "平台专属 Python 模块互不可用",
+      "detail": "winreg / msvcrt 仅 Windows；pwd / grp / fcntl / termios 仅 POSIX。凭训练环境记忆直接 import，换平台即 ImportError。",
+      "fix": "运行时判断：if os.name=='nt' 走 winreg，else 走 pwd 等替代；或 sys.platform.startswith('win') 分支。环境探测类脚本优先选跨平台库（psutil/pathlib）。"
+    },
+    {
+      "id": "json-bom-parse", "platforms": ["windows"],
+      "title": "Windows 产生的 JSON 带 BOM，json.loads 直接报错",
+      "detail": "PowerShell 重定向（> file.json）、记事本保存的文件常带 UTF-8 BOM（EF BB BF）。python json.loads(open(f).read()) 报 JSONDecodeError: Expecting value，Node JSON.parse 同样炸，且报错信息完全看不出是 BOM 问题。Windows PowerShell 5.1 的 Out-File 默认还是 UTF-16LE。",
+      "fix": "Python 读文件用 encoding='utf-8-sig'（自动剥 BOM）；Node 用 fs.readFileSync + text.replace(/^\uFEFF/,'') 后再 parse；写文件时避免 PowerShell 重定向，用程序写。"
+    },
+    {
+      "id": "js-path-join", "platforms": ["windows", "linux", "macos", "freebsd"],
+      "title": "JS 里字符串拼路径用 / 会在 Windows 出问题",
+      "detail": "dir + '/' + file 在 Windows 大多能侥幸工作（API 容忍正斜杠），但传给原生命令行、某些原生模块（fs 的 old API、child_process 参数）时会因反斜杠语义失败；反过来 '\\' 硬拼在 POSIX 是非法转义。",
+      "fix": "统一 path.join(dir, file) / path.resolve；需要字符串分隔符用 path.sep；URL 场景用 POSIX 风格另说，但绝不用加号拼斜杠的写法。"
+    },
+    {
+      "id": "js-npm-scripts-shell", "platforms": ["windows"],
+      "title": "package.json scripts 在 Windows 用的不是 sh",
+      "detail": "npm scripts 在 Linux/macOS 由 sh 执行，Windows 默认 cmd.exe。脚本里写 NODE_ENV=prod node app.js、cp -r、rm -rf、&& 链接的 POSIX 命令在 Windows 全部失败（NODE_ENV= 在 cmd 是语法错误）。",
+      "fix": "环境变量用 cross-env 包；文件操作写 Node 内联（node -e）或用跨平台包（shx：shx rm -rf）；或 scripts 字段写纯 node 调用不依赖 shell 语法。"
+    },
+    {
+      "id": "js-process-platform", "platforms": ["windows", "linux", "macos"],
+      "title": "Node 判断平台要认 win32 不是 windows",
+      "detail": "process.platform 在 Windows 返回 'win32'（64 位也是），不是 'windows'；process.platform==='win32' / os.platform() 分支是标准写法。凭直觉写 ==='windows' 永远不命中。",
+      "fix": "process.platform === 'win32' 判断 Windows；darwin=macOS，linux=Linux，freebsd=FreeBSD。需要看 CPU 架构用 process.arch。"
+    },
+    {
+      "id": "py-open-newline-dual", "platforms": ["windows"],
+      "title": "生成的脚本文件 Windows 换行会让 POSIX 工具报错（含 JSON）",
+      "detail": "在 Windows 上生成的 .sh/.py/.json 文件如果是 CRLF，scp 到 Linux 后 bash 执行报 $'\r': command not found，JSON 校验器报非法字符。Python open(...,'w') 默认平台换行是根因之一（见 py-open-newline）。",
+      "fix": "生成文件显式 newline=''；传输后 dos2unix 或 sed -i 's/\r$//'；读入侧 strip '\\r'。判断文件是否 CRLF：file 命令或 python 检查 b'\\r\\n' in head。"
+    },
+    {
       "id": "bsd-sed-inplace", "platforms": ["macos", "freebsd"],
       "title": "BSD sed 的 -i 必须带备份后缀",
       "detail": "macOS 与 FreeBSD 的 sed 都是 BSD 版，`sed -i 's/a/b/' f` 会把 's/a/b/' 当成备份后缀，报错或产生垃圾文件；`sed -i '.bak'` 则留下 f.bak。",

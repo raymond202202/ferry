@@ -91,6 +91,33 @@
       ]
     },
     {
+      "id": "reg",
+      "category": "service",
+      "summary": "Windows 注册表读写（其他平台无直接对应，配置体系不同）",
+      "names": { "linux": "—", "macos": "defaults", "freebsd": "sysrc", "windows": "Get-ItemProperty", "windows_cmd": "reg" },
+      "flags": [],
+      "recipes": [
+        { "desc": "读取一个注册表键值", "status": "unsupported",
+          "linux": "", "macos": "defaults read com.apple.dock", "freebsd": "sysrc sshd_enable",
+          "windows": "Get-ItemProperty 'HKLM:\\SOFTWARE\\Example' -Name Ver",
+          "caveats": ["Linux 无注册表概念，应用配置在各处（/etc、gsettings 等），需按具体软件换方案", "macOS defaults 只覆盖 plist 偏好设置，非全部配置"] },
+        { "desc": "查询注册表键值", "status": "equivalent",
+          "linux": "", "macos": "", "freebsd": "",
+          "windows": "Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Example' -Name Ver",
+          "windows_cmd": "reg query HKLM\\SOFTWARE\\Example /v Ver",
+          "caveats": ["仅 Windows 内部转换（cmd/PowerShell 写法），POSIX 平台无对应"] },
+        { "desc": "写注册表键值", "status": "equivalent",
+          "linux": "", "macos": "", "freebsd": "",
+          "windows": "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Example' -Name Ver -Value 1.0",
+          "windows_cmd": "reg add HKLM\\SOFTWARE\\Example /v Ver /t REG_SZ /d 1.0 /f",
+          "caveats": ["仅 Windows 内部转换（cmd/PowerShell 写法），POSIX 平台无对应"] },
+        { "desc": "设置开机自启动项", "status": "approximate",
+          "linux": "systemctl enable app", "macos": "launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.me.app.plist",
+          "freebsd": "sysrc app_enable=YES", "windows": "reg add 'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run' /v App /t REG_SZ /d 'C:\\app.exe' /f",
+          "caveats": ["语义不同：systemctl 是服务管理，注册表 Run 键只是登录时启动程序，不处理服务生命周期"] }
+      ]
+    },
+    {
       "id": "schtasks",
       "category": "service",
       "summary": "Windows 计划任务",

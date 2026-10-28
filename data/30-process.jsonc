@@ -226,7 +226,11 @@
         { "desc": "带环境变量运行命令", "status": "approximate",
           "linux": "env FOO=bar ./run.sh", "macos": "env FOO=bar ./run.sh", "freebsd": "env FOO=bar ./run.sh",
           "windows": "$env:FOO='bar'; .\\run.ps1",
-          "caveats": ["Windows 先赋值再执行，不是一次性前缀"] }
+          "caveats": ["Windows 先赋值再执行，不是一次性前缀"] },
+        { "desc": "用 env 执行另一条命令（shebang 里的 /usr/bin/env X）", "status": "approximate",
+          "linux": "env python3", "macos": "env python3", "freebsd": "env python3",
+          "windows": "python3",
+          "caveats": ["env 只是 PATH 查找并执行，Windows 直接调同名命令即可；python3 在 Windows 原生不存在，须换 python"] }
       ]
     },
     {
@@ -331,7 +335,7 @@
       "summary": "日期时间",
       "names": { "linux": "date", "macos": "date", "freebsd": "date", "windows": "Get-Date", "windows_cmd": "date" },
       "flags": [
-        { "semantic": "格式化为 YYYY-MM-DD", "linux": "+%F", "macos": "+%F", "freebsd": "+%F", "windows": "", "windows_cmd": "" },
+        { "semantic": "格式化为 YYYY-MM-DD", "linux": "+%F", "macos": "+%F", "freebsd": "+%F", "windows": "-Format 'yyyy-MM-dd'", "windows_cmd": "" },
         { "semantic": "解析指定日期", "linux": "-d", "macos": "", "freebsd": "", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [

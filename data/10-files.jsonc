@@ -276,7 +276,9 @@
       "names": { "linux": "stat", "macos": "stat", "freebsd": "stat", "windows": "Get-Item", "windows_cmd": "dir" },
       "flags": [
         { "semantic": "文件大小（字节）", "linux": "-c %s", "macos": "-f %z", "freebsd": "-f %z", "windows": "", "windows_cmd": "" },
-        { "semantic": "权限/模式", "linux": "-c %a", "macos": "-f %Lp", "freebsd": "-f %Lp", "windows": "", "windows_cmd": "" }
+        { "semantic": "权限/模式", "linux": "-c %a", "macos": "-f %Lp", "freebsd": "-f %Lp", "windows": "", "windows_cmd": "" },
+        { "semantic": "修改时间（unix 时间戳）", "linux": "-c %Y", "macos": "-f %m", "freebsd": "-f %m", "windows": "-Timestamp", "windows_cmd": "" },
+        { "semantic": "修改时间（可读）", "linux": "-c %y", "macos": "-f %Sm", "freebsd": "-f %Sm", "windows": "", "windows_cmd": "" }
       ],
       "recipes": [
         { "desc": "文件大小（字节）", "status": "approximate",
@@ -286,6 +288,9 @@
         { "desc": "权限模式", "status": "approximate",
           "linux": "stat -c %a a.txt", "macos": "stat -f %Lp a.txt", "freebsd": "stat -f %Lp a.txt",
           "windows": "(Get-Acl a.txt).AccessToString" },
+        { "desc": "修改时间（unix 时间戳）", "status": "approximate",
+          "linux": "stat -c %Y a.txt", "macos": "stat -f %m a.txt", "freebsd": "stat -f %m a.txt",
+          "windows": "[int][datetimeoffset](Get-Item a.txt).LastWriteTimeUtc.ToUnixTimeSeconds()" },
         { "desc": "修改时间", "status": "approximate",
           "linux": "stat -c %y a.txt", "macos": "stat -f \"%Sm\" -t \"%F %T\" a.txt", "freebsd": "stat -f \"%Sm\" -t \"%F %T\" a.txt",
           "windows": "(Get-Item a.txt).LastWriteTime" }
@@ -371,7 +376,15 @@
           "caveats": ["Windows 需自行递归求和，慢；大目录可用 Sysinternals du"] },
         { "desc": "子目录各占多少", "status": "approximate",
           "linux": "du -sh */ | sort -h", "macos": "du -sh */ | sort -h", "freebsd": "du -sh */ | sort -h",
-          "windows": "Get-ChildItem -Directory | ForEach-Object { [PSCustomObject]@{ Name = $_.Name; MB = [math]::Round(((Get-ChildItem $_.FullName -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), 1) } } | Sort-Object MB -Descending" }
+          "windows": "Get-ChildItem -Directory | ForEach-Object { [PSCustomObject]@{ Name = $_.Name; MB = [math]::Round(((Get-ChildItem $_.FullName -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), 1) } } | Sort-Object MB -Descending" },
+        { "desc": "指定目录总占用", "status": "approximate",
+          "linux": "du -sh /var/log", "macos": "du -sh /var/log", "freebsd": "du -sh /var/log",
+          "windows": "(Get-ChildItem /var/log -Recurse -File | Measure-Object Length -Sum).Sum / 1MB",
+          "caveats": ["Windows 需自行递归求和，慢；大目录可用 Sysinternals du"] },
+        { "desc": "指定文件大小", "status": "approximate",
+          "linux": "du -sh app.bin", "macos": "du -sh app.bin", "freebsd": "du -sh app.bin",
+          "windows": "(Get-Item app.bin).Length / 1MB",
+          "caveats": ["du 输出块占用（含填充），Length 是逻辑大小，数值可能不同"] }
       ]
     },
     {
@@ -464,8 +477,8 @@
       "flags": [],
       "recipes": [
         { "desc": "写 ISO 到 U 盘", "status": "approximate",
-          "linux": "sudo dd if=img.iso of=/dev/sdb bs=4M status=progress",
-          "macos": "sudo dd if=img.iso of=/dev/rdisk2 bs=4m", "freebsd": "dd if=img.iso of=/dev/da0 bs=1m",
+          "linux": "dd if=<iso> of=<target-disk> bs=4M status=progress",
+          "macos": "dd if=<iso> of=<target-disk> bs=4m", "freebsd": "dd if=<iso> of=<target-disk> bs=1m",
           "windows": "dd 无内置等价；用 Rufus 或 WSL 里的 dd，盘符需 /dev/sdX",
           "caveats": ["写错设备名会毁盘，务必先 lsblk/diskutil list 确认"] }
       ]
